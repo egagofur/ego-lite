@@ -11,6 +11,7 @@
     "build": "node scripts/build.mjs",
     "check:skill-translation": "node scripts/check-skill-translation.mjs",
     "e2e": "node scripts/run-real-browser-e2e.mjs",
+    "install:local": "npm run build && node scripts/install-local.mjs",
     "prepare": "if [ \"$CI\" = \"true\" ]; then exit 0; fi; cd ../.. && lefthook install",
     "style:check": "prettier --check \"src/**/*.{ts,mjs,js}\" \"scripts/**/*.{ts,mjs,js}\" package.json README.md",
     "typecheck": "tsc --noEmit",
