@@ -159,38 +159,26 @@ export async function captureScreenshotForSession(
       params.clip = { ...options.clip };
     }
   } else {
-    const dprExpression = "window.devicePixelRatio";
-    const dpr =
-      Number(
-        runtimeValue(
-          await cdp(
-            "Runtime.evaluate",
-            {
-              expression: dprExpression,
-              returnByValue: true,
-            },
-            sessionId,
-          ),
-          dprExpression,
-        ),
-      ) || 1;
-    const cssScale = 1 / dpr;
+    // One round trip reads the device pixel ratio and, when no clip is given,
+    // the viewport and document geometry for the default clip.
+    const infoExpression = options.clip
+      ? "({dpr:window.devicePixelRatio})"
+      : "({dpr:window.devicePixelRatio,w:innerWidth,h:innerHeight,sx:scrollX,sy:scrollY,pw:document.documentElement.scrollWidth,ph:document.documentElement.scrollHeight})";
+    const info = runtimeValue(
+      await cdp(
+        "Runtime.evaluate",
+        {
+          expression: infoExpression,
+          returnByValue: true,
+        },
+        sessionId,
+      ),
+      infoExpression,
+    );
+    const cssScale = 1 / (Number(info?.dpr) || 1);
     if (options.clip) {
       params.clip = { scale: cssScale, ...options.clip };
     } else {
-      const infoExpression =
-        "({url:location.href,title:document.title,w:innerWidth,h:innerHeight,sx:scrollX,sy:scrollY,pw:document.documentElement.scrollWidth,ph:document.documentElement.scrollHeight})";
-      const info = runtimeValue(
-        await cdp(
-          "Runtime.evaluate",
-          {
-            expression: infoExpression,
-            returnByValue: true,
-          },
-          sessionId,
-        ),
-        infoExpression,
-      );
       params.clip = {
         // CDP interprets clip coordinates in the page's document coordinate
         // space. A viewport screenshot therefore starts at the current scroll

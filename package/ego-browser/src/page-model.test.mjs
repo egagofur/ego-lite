@@ -3179,6 +3179,122 @@ test("viewport snapshots preserve native iframe contents and refs", async () => 
   }
 });
 
+test("snapshots print the Page URL once and shorten same-origin link URLs", async () => {
+  await withFixture(async (fixture) => {
+    const content = [
+      "root",
+      "  container",
+      '    heading "Orders"',
+      "    paragraph",
+      '      text "Recent orders"',
+      '    anchor "Order 7" [ref=1, loc=href:/orders/7, url=https://example.test/orders/7]',
+      '    anchor "Help" [ref=2, url=https://example.test/help?q=1]',
+      '    anchor "Elsewhere" [ref=3, url=https://other.test/x]',
+    ].join("\n");
+    const task = taskForRound(fixture, "round-a", {
+      async snapshot(options) {
+        fixture.snapshotOptions.push(options);
+        return {
+          content,
+          refs: [
+            { refId: 1, backendNodeId: 1, role: "anchor" },
+            { refId: 2, backendNodeId: 2, role: "anchor" },
+            { refId: 3, backendNodeId: 3, role: "anchor" },
+          ],
+        };
+      },
+    });
+    const page = await openTestPage(task, "https://example.test/orders");
+
+    const [header, ...body] = (await page.snapshot()).split("\n");
+    assert.match(
+      header,
+      /^\[p1 "[^"]*" https:\/\/example\.test\/orders \| space /,
+    );
+    assert.match(
+      header,
+      / — p1\*(?:,|\]|$)/,
+      "the current Page's title is not repeated",
+    );
+    assert.deepEqual(body, [
+      "root",
+      "  container",
+      '    heading "Orders"',
+      "    paragraph",
+      '      text "Recent orders"',
+      '    anchor "Order 7" [ref=1, loc=href:/orders/7]',
+      '    anchor "Help" [ref=2, url=/help?q=1]',
+      '    anchor "Elsewhere" [ref=3, url=https://other.test/x]',
+    ]);
+
+    const interactive = await page.snapshot({ interactive: true });
+    assert.deepEqual(interactive.split("\n").slice(1), [
+      "root",
+      '  heading "Orders"',
+      '  anchor "Order 7" [ref=1, loc=href:/orders/7]',
+      '  anchor "Help" [ref=2, url=/help?q=1]',
+      '  anchor "Elsewhere" [ref=3, url=https://other.test/x]',
+    ]);
+    assert.equal(
+      "interactive" in fixture.snapshotOptions.at(-1),
+      false,
+      "the filter runs in the SDK, not in the native snapshot",
+    );
+    await assert.rejects(
+      () => page.snapshot({ interactive: "yes" }),
+      /interactive/,
+    );
+  });
+});
+
+test("a snapshot rereads frames when a reused frame session detached after capture", async () => {
+  await withFixture(async (fixture) => {
+    let frameSessionReads = 0;
+    const task = taskForRound(fixture, "round-a", {
+      async cdp(method, params, sessionId, timeoutMs) {
+        if (method === "Page.getFrameTree" && sessionId === "session:gone") {
+          throw new Error("Session with given id not found.");
+        }
+        return fixture.services.cdp(method, params, sessionId, timeoutMs);
+      },
+      async ensureFrameSessions() {
+        frameSessionReads += 1;
+        // The read made right after the capture returns a session that
+        // detaches before the document check uses it.
+        return new Map([
+          [
+            "frame-oopif",
+            frameSessionReads === 2 ? "session:gone" : "session:oopif",
+          ],
+        ]);
+      },
+      async snapshot() {
+        return {
+          content: 'root\n  button "Pay" [ref=1]',
+          refs: [{ refId: 1, backendNodeId: 1, role: "button" }],
+        };
+      },
+    });
+    const page = await openTestPage(task, "https://example.test/pay");
+    const before = frameSessionReads;
+    assert.match(await page.snapshot(), /button "Pay" \[ref=1\]/);
+    assert.equal(
+      frameSessionReads - before,
+      3,
+      "before-capture read, capture read, and one fresh read after the detach",
+    );
+  });
+});
+
+test("goto resolves a root-relative URL printed by a snapshot", async () => {
+  await withFixture(async (fixture) => {
+    const task = taskForRound(fixture, "round-a");
+    const page = await openTestPage(task, "https://example.test/catalog/list");
+    await page.goto("/catalog/item?id=7");
+    assert.equal(await page.url(), "https://example.test/catalog/item?id=7");
+  });
+});
+
 test("a viewport snapshot preserves previously registered offscreen iframe refs", async () => {
   await withFixture(async (fixture) => {
     const snapshotFixture = async ({ scope }) => {

@@ -18,6 +18,7 @@ import {
   pageDefaultScreenshotPathFirstRunCase,
   pageDefaultScreenshotPathSecondRunCase,
 } from "./page-default-screenshot-path.mjs";
+import { pageSnapshotCompactCase } from "./page-snapshot-compact.mjs";
 import { pageSnapshotLocatorCase } from "./page-snapshot-locators.mjs";
 import { pageSnapshotViewportOverflowCase } from "./page-snapshot-viewport-overflow.mjs";
 import { pageWheelTrapCase } from "./page-wheel-trap.mjs";
@@ -155,6 +156,7 @@ export const e2eCases = [
     body: pageDefaultScreenshotPathSecondRunCase,
   },
   { name: "Page snapshot locator quality", body: pageSnapshotLocatorCase },
+  { name: "Page snapshot compact output", body: pageSnapshotCompactCase },
   {
     name: "Page snapshot iframe viewport",
     body: pageSnapshotIframeViewportCase,

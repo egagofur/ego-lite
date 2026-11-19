@@ -4,6 +4,8 @@ import assert from "node:assert/strict";
 import {
   compactSnapshotContent,
   compactSnapshotResult,
+  compactSnapshotUrls,
+  filterInteractiveSnapshot,
   preparePageSnapshotResult,
   rewriteSnapshotRefIds,
   sanitizeSnapshotLocators,
@@ -71,8 +73,7 @@ test("snapshot compaction removes only redundant text and containers", () => {
 
   const compact = [
     "root",
-    "  button [ref=1]",
-    '    text "Save"',
+    '  button "Save" [ref=1]',
     "  container",
     '    text "A"',
     '    text "B"',
@@ -101,6 +102,152 @@ test("snapshot compaction removes only redundant text and containers", () => {
     compactSnapshotContent("snapshot unavailable"),
     "snapshot unavailable",
   );
+});
+
+test("snapshot compaction folds a lone text child only into its accessible name", () => {
+  const content = [
+    "root",
+    "  anchor [ref=1, loc=href:/docs, url=https://example.com/docs]",
+    '    text "Docs"',
+    '  button "Search" [ref=2]',
+    '    text "Search"',
+    '  button "Close" [ref=3]',
+    '    text "X"',
+    "  heading",
+    '    text "Orders \\"2024\\""',
+    "  table_cell",
+    '    text "Paid"',
+    '  textbox "Email" [ref=4]',
+    '    text "agent@example.com"',
+    "  paragraph",
+    '    text "Body copy"',
+    "  list_item",
+    '    text "Item"',
+    "  anchor [ref=5]",
+    '    text "Two"',
+    '    text "children"',
+    "  anchor [ref=6]",
+    '    text "Nested"',
+    "      image",
+  ].join("\n");
+
+  const compact = [
+    "root",
+    '  anchor "Docs" [ref=1, loc=href:/docs, url=https://example.com/docs]',
+    '  button "Search" [ref=2]',
+    '  button "Close" [ref=3]',
+    '    text "X"',
+    '  heading "Orders \\"2024\\""',
+    '  table_cell "Paid"',
+    '  textbox "Email" [ref=4]',
+    '    text "agent@example.com"',
+    "  paragraph",
+    '    text "Body copy"',
+    "  list_item",
+    '    text "Item"',
+    "  anchor [ref=5]",
+    '    text "Two"',
+    '    text "children"',
+    "  anchor [ref=6]",
+    '    text "Nested"',
+    "      image",
+  ].join("\n");
+
+  assert.equal(compactSnapshotContent(content), compact);
+  assert.equal(compactSnapshotContent(compact), compact);
+});
+
+test("snapshot URLs are shortened against the Page URL without losing the target", () => {
+  const page = "https://shop.example.com/catalog/list?page=2";
+  const content = [
+    '[p1 "Shop" https://shop.example.com/catalog/list?page=2 | space "s"(1)]',
+    "root",
+    "  anchor [ref=1, loc=href:/catalog/item?id=7, url=https://shop.example.com/catalog/item?id=7]",
+    "  anchor [ref=2, url=https://shop.example.com/a,b/c#top]",
+    "  anchor [ref=3, loc=href:item?id=8, url=https://shop.example.com/catalog/item?id=8]",
+    "  anchor [ref=4, loc=href:/other, url=https://shop.example.com/different]",
+    "  anchor [ref=5, url=https://cdn.example.com/file.pdf]",
+    "  anchor [ref=6, url=javascript:void(0)]",
+    '  anchor "url=https://shop.example.com/x" [ref=7]',
+    '  anchor [ref=8, loc=css:a[href="/x"], url=https://shop.example.com/x]',
+    "  anchor [ref=9, url=https://shop.example.com/top#]",
+    "  anchor [ref=10, url=https://shop.example.com/q?]",
+    "",
+  ].join("\n");
+  const compact = compactSnapshotUrls(content, page);
+  assert.equal(
+    compact,
+    [
+      '[p1 "Shop" https://shop.example.com/catalog/list?page=2 | space "s"(1)]',
+      "root",
+      "  anchor [ref=1, loc=href:/catalog/item?id=7]",
+      "  anchor [ref=2, url=/a,b/c#top]",
+      "  anchor [ref=3, loc=href:item?id=8]",
+      "  anchor [ref=4, loc=href:/other, url=/different]",
+      "  anchor [ref=5, url=https://cdn.example.com/file.pdf]",
+      "  anchor [ref=6, url=javascript:void(0)]",
+      '  anchor "url=https://shop.example.com/x" [ref=7]',
+      '  anchor [ref=8, loc=css:a[href="/x"], url=/x]',
+      "  anchor [ref=9, url=/top#]",
+      "  anchor [ref=10, url=/q?]",
+      "",
+    ].join("\n"),
+  );
+  // Every shortened value still resolves to the original absolute URL.
+  assert.equal(
+    new URL("/a,b/c#top", page).href,
+    "https://shop.example.com/a,b/c#top",
+  );
+  assert.equal(compactSnapshotUrls(compact, page), compact);
+  assert.equal(compactSnapshotUrls(content, "about:blank"), content);
+  assert.equal(compactSnapshotUrls(content, "not a url"), content);
+});
+
+test("interactive snapshot keeps actionable nodes and orientation only", () => {
+  const content = [
+    "root",
+    "  container",
+    '    heading "Orders"',
+    "    paragraph",
+    '      text "Recent orders for your store."',
+    "    unordered_list",
+    "      list_item",
+    '        anchor "Overview" [ref=1, url=/overview]',
+    "      list_item",
+    "        anchor [ref=2, url=/orders]",
+    "          image",
+    '          text "Orders"',
+    '          text "(12)"',
+    '    textbox "Email" [ref=3]',
+    '      text "agent@example.com"',
+    "    dialog",
+    '      button "Close" [ref=4]',
+    "  iframe [ref=5]",
+    "    root",
+    '      button "Pay" [ref=6]',
+  ].join("\n");
+  assert.equal(
+    filterInteractiveSnapshot(content),
+    [
+      "root",
+      '  heading "Orders"',
+      '  anchor "Overview" [ref=1, url=/overview]',
+      '  anchor "Orders (12)" [ref=2, url=/orders]',
+      '  textbox "Email" [ref=3]',
+      '    text "agent@example.com"',
+      "  dialog",
+      '    button "Close" [ref=4]',
+      "  iframe [ref=5]",
+      "    root",
+      '      button "Pay" [ref=6]',
+    ].join("\n"),
+  );
+  const long = `root\n  button [ref=1]\n    text "${"x".repeat(150)}"\n    text "y"`;
+  assert.equal(
+    filterInteractiveSnapshot(long),
+    `root\n  button "${"x".repeat(100)}…" [ref=1]`,
+  );
+  assert.equal(filterInteractiveSnapshot("no tree"), "no tree");
 });
 
 test("snapshot compaction omits unusable locator statuses from refs", () => {

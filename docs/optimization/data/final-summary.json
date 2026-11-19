@@ -1,0 +1,399 @@
+{
+  "tokenizer": "o200k_base via js-tiktoken (measured; proxy for Claude tokens)",
+  "runs": 3,
+  "totalMs": 18419.928125000006,
+  "cpuUserMs": 882.681,
+  "cpuSystemMs": 309.655,
+  "rssStartMB": 111.671875,
+  "rssEndMB": 176.984375,
+  "heapEndMB": 89.24032592773438,
+  "rows": [
+    {
+      "phase": "setup",
+      "ms": 0,
+      "cdpCalls": 1,
+      "outBytes": 72,
+      "inBytes": 15335,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "task:goto",
+      "ms": 648.9587499999907,
+      "cdpCalls": 17,
+      "outBytes": 2016,
+      "inBytes": 122636,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "task:observe1",
+      "ms": 12.571875000023283,
+      "cdpCalls": 19,
+      "outBytes": 11429,
+      "inBytes": 34408,
+      "nativeSnapshots": 1,
+      "outputChars": 571,
+      "outputTokens": 177,
+      "errors": 0
+    },
+    {
+      "phase": "task:act",
+      "ms": 191.04470800000126,
+      "cdpCalls": 52,
+      "outBytes": 113416,
+      "inBytes": 81180,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "task:observe2",
+      "ms": 76.91200000001118,
+      "cdpCalls": 26,
+      "outBytes": 9286,
+      "inBytes": 42255,
+      "nativeSnapshots": 1,
+      "outputChars": 437,
+      "outputTokens": 137,
+      "errors": 0
+    },
+    {
+      "phase": "app:goto",
+      "ms": 228.56891699999687,
+      "cdpCalls": 12,
+      "outBytes": 1459,
+      "inBytes": 24308,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "app:viewport",
+      "ms": 23.02083400002448,
+      "cdpCalls": 46,
+      "outBytes": 94383,
+      "inBytes": 46340,
+      "nativeSnapshots": 1,
+      "outputChars": 8097,
+      "outputTokens": 2263,
+      "errors": 0
+    },
+    {
+      "phase": "app:full",
+      "ms": 20.94541700000991,
+      "cdpCalls": 54,
+      "outBytes": 117210,
+      "inBytes": 50794,
+      "nativeSnapshots": 1,
+      "outputChars": 8829,
+      "outputTokens": 2471,
+      "errors": 0
+    },
+    {
+      "phase": "app:dynamic",
+      "ms": 156.7359160000051,
+      "cdpCalls": 79,
+      "outBytes": 174391,
+      "inBytes": 336504,
+      "nativeSnapshots": 1,
+      "outputChars": 10233,
+      "outputTokens": 2859,
+      "errors": 0
+    },
+    {
+      "phase": "app:repeat",
+      "ms": 19.741875000006985,
+      "cdpCalls": 59,
+      "outBytes": 132256,
+      "inBytes": 53081,
+      "nativeSnapshots": 1,
+      "outputChars": 10233,
+      "outputTokens": 2859,
+      "errors": 0
+    },
+    {
+      "phase": "app:screenshot",
+      "ms": 62.76433299999917,
+      "cdpCalls": 3,
+      "outBytes": 600,
+      "inBytes": 236812,
+      "nativeSnapshots": 0,
+      "outputChars": 76,
+      "outputTokens": 36,
+      "errors": 0
+    },
+    {
+      "phase": "wikipedia:goto",
+      "ms": 674.2810410000093,
+      "cdpCalls": 13,
+      "outBytes": 1621,
+      "inBytes": 234827,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "wikipedia:viewport",
+      "ms": 282.33520899998257,
+      "cdpCalls": 65,
+      "outBytes": 160541,
+      "inBytes": 59571,
+      "nativeSnapshots": 1,
+      "outputChars": 13290,
+      "outputTokens": 3023,
+      "errors": 0
+    },
+    {
+      "phase": "wikipedia:full",
+      "ms": 2675.896584000002,
+      "cdpCalls": 548,
+      "outBytes": 1645233,
+      "inBytes": 336197,
+      "nativeSnapshots": 1,
+      "outputChars": 230756,
+      "outputTokens": 41892,
+      "errors": 0
+    },
+    {
+      "phase": "python-docs:goto",
+      "ms": 794.0625,
+      "cdpCalls": 12,
+      "outBytes": 1480,
+      "inBytes": 109669,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "python-docs:viewport",
+      "ms": 50.09437499998603,
+      "cdpCalls": 19,
+      "outBytes": 44716,
+      "inBytes": 34621,
+      "nativeSnapshots": 1,
+      "outputChars": 9606,
+      "outputTokens": 2323,
+      "errors": 0
+    },
+    {
+      "phase": "python-docs:full",
+      "ms": 65.84375,
+      "cdpCalls": 34,
+      "outBytes": 101512,
+      "inBytes": 42416,
+      "nativeSnapshots": 1,
+      "outputChars": 88191,
+      "outputTokens": 17556,
+      "errors": 0
+    },
+    {
+      "phase": "github:goto",
+      "ms": 2349.7171659999876,
+      "cdpCalls": 19,
+      "outBytes": 2497,
+      "inBytes": 764478,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "github:viewport",
+      "ms": 264.26104100001976,
+      "cdpCalls": 46,
+      "outBytes": 167384,
+      "inBytes": 247828,
+      "nativeSnapshots": 1,
+      "outputChars": 16905,
+      "outputTokens": 3928,
+      "errors": 0
+    },
+    {
+      "phase": "github:full",
+      "ms": 1913.2536670000118,
+      "cdpCalls": 506,
+      "outBytes": 1585428,
+      "inBytes": 677072,
+      "nativeSnapshots": 1,
+      "outputChars": 177726,
+      "outputTokens": 41086,
+      "errors": 0
+    },
+    {
+      "phase": "mdn:goto",
+      "ms": 2776.538042,
+      "cdpCalls": 166,
+      "outBytes": 20099,
+      "inBytes": 1239996,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "mdn:viewport",
+      "ms": 608.9702499999839,
+      "cdpCalls": 141,
+      "outBytes": 601208,
+      "inBytes": 8281676,
+      "nativeSnapshots": 1,
+      "outputChars": 9388,
+      "outputTokens": 2289,
+      "errors": 0
+    },
+    {
+      "phase": "mdn:full",
+      "ms": 2752.5317090000026,
+      "cdpCalls": 543,
+      "outBytes": 10566029,
+      "inBytes": 8487922,
+      "nativeSnapshots": 1,
+      "outputChars": 267508,
+      "outputTokens": 66585,
+      "errors": 0
+    },
+    {
+      "phase": "httpbin-form:goto",
+      "ms": 867.5881250000093,
+      "cdpCalls": 12,
+      "outBytes": 1472,
+      "inBytes": 62167,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "httpbin-form:viewport",
+      "ms": 78.17833299998892,
+      "cdpCalls": 22,
+      "outBytes": 12905,
+      "inBytes": 78563,
+      "nativeSnapshots": 1,
+      "outputChars": 1399,
+      "outputTokens": 389,
+      "errors": 0
+    },
+    {
+      "phase": "httpbin-form:full",
+      "ms": 62.68491699997685,
+      "cdpCalls": 21,
+      "outBytes": 12645,
+      "inBytes": 78419,
+      "nativeSnapshots": 1,
+      "outputChars": 1399,
+      "outputTokens": 389,
+      "errors": 0
+    }
+  ],
+  "perRun": [
+    {
+      "totalMs": 18985.104792,
+      "cpuUserMs": 870.54,
+      "cpuSystemMs": 309.655,
+      "memStart": {
+        "rss": 71041024,
+        "heapUsed": 6573896
+      },
+      "memEnd": {
+        "rss": 185581568,
+        "heapUsed": 93641924
+      },
+      "errors": []
+    },
+    {
+      "totalMs": 18419.928125000006,
+      "cpuUserMs": 910.086,
+      "cpuSystemMs": 331.911,
+      "memStart": {
+        "rss": 117096448,
+        "heapUsed": 6563892
+      },
+      "memEnd": {
+        "rss": 181633024,
+        "heapUsed": 93575264
+      },
+      "errors": []
+    },
+    {
+      "totalMs": 17038.052040999988,
+      "cpuUserMs": 882.681,
+      "cpuSystemMs": 306.699,
+      "memStart": {
+        "rss": 156057600,
+        "heapUsed": 6606232
+      },
+      "memEnd": {
+        "rss": 193232896,
+        "heapUsed": 93484924
+      },
+      "errors": []
+    }
+  ],
+  "methodsPerSnapshot": {
+    "task:observe1": {
+      "Target.activateTarget": 1,
+      "Target.getTargets": 2,
+      "Page.getFrameTree": 6,
+      "Runtime.evaluate": 4,
+      "Runtime.getProperties": 1,
+      "DOM.describeNode": 4,
+      "Runtime.releaseObjectGroup": 1
+    },
+    "app:viewport": {
+      "Target.activateTarget": 1,
+      "Target.getTargets": 2,
+      "Page.getFrameTree": 6,
+      "Runtime.evaluate": 4,
+      "Runtime.getProperties": 1,
+      "DOM.describeNode": 31,
+      "Runtime.releaseObjectGroup": 1
+    },
+    "app:full": {
+      "Target.activateTarget": 1,
+      "Target.getTargets": 2,
+      "Page.getFrameTree": 6,
+      "Runtime.evaluate": 3,
+      "Runtime.getProperties": 1,
+      "DOM.describeNode": 40,
+      "Runtime.releaseObjectGroup": 1
+    },
+    "app:repeat": {
+      "Target.activateTarget": 1,
+      "Target.getTargets": 2,
+      "Page.getFrameTree": 6,
+      "Runtime.evaluate": 3,
+      "Runtime.getProperties": 1,
+      "DOM.describeNode": 45,
+      "Runtime.releaseObjectGroup": 1
+    },
+    "wikipedia:full": {
+      "Target.activateTarget": 1,
+      "Target.getTargets": 2,
+      "Page.getFrameTree": 6,
+      "Runtime.evaluate": 3,
+      "Runtime.getProperties": 1,
+      "DOM.describeNode": 534,
+      "Runtime.releaseObjectGroup": 1
+    },
+    "mdn:full": {
+      "Target.activateTarget": 1,
+      "Target.getTargets": 2,
+      "Page.getFrameTree": 58,
+      "Accessibility.getFullAXTree": 28,
+      "Runtime.evaluate": 51,
+      "Runtime.getProperties": 23,
+      "DOM.describeNode": 357,
+      "Runtime.releaseObjectGroup": 23
+    }
+  }
+}

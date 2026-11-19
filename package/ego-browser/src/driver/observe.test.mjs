@@ -43,17 +43,15 @@ function withCdpRuntime(fn) {
       } else if (request.method === "Runtime.evaluate") {
         result = {
           result: {
-            value:
-              request.params.expression === "window.devicePixelRatio"
-                ? 2
-                : {
-                    w: 800,
-                    h: 600,
-                    sx: 24,
-                    sy: 1200,
-                    pw: 1600,
-                    ph: 3000,
-                  },
+            value: {
+              dpr: 2,
+              w: 800,
+              h: 600,
+              sx: 24,
+              sy: 1200,
+              pw: 1600,
+              ph: 3000,
+            },
           },
         };
       }
@@ -189,6 +187,11 @@ test("captureScreenshot clips the currently visible scrolled viewport", async ()
     await withCdpRuntime(async ({ sent }) => {
       await captureScreenshot("/tmp/ego-browser-scrolled-shot.png");
 
+      // Device pixel ratio and viewport geometry share one round trip.
+      assert.equal(
+        sent.filter((request) => request.method === "Runtime.evaluate").length,
+        1,
+      );
       const screenshot = sent.find(
         (request) => request.method === "Page.captureScreenshot",
       );
