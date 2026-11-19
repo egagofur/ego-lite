@@ -26,6 +26,20 @@ export type ManagedPage = PageLedgerEntry & {
   label: string;
 };
 
+/**
+ * The last snapshot an agent asked to diff against, for one Page label. Kept
+ * outside the ledger so the ledger stays small and is not rewritten with
+ * page text on every snapshot.
+ */
+export type SnapshotBase = {
+  /** Printed to the agent; a later `snapshot({ diff: id })` must name it. */
+  id: string;
+  targetId: string;
+  /** Options that shape the output; a diff needs the same key. */
+  key: string;
+  body: string;
+};
+
 export type PageLedger = {
   browserInstanceId?: string;
   spaceId: number;
@@ -55,6 +69,7 @@ type PageLedgerStoreOptions = {
 
 const DEFAULT_STALE_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_WRITE_CONFLICTS = 8;
+const SNAPSHOT_BASE_DIR = "snapshot-bases";
 const LEDGER_FILE_PATTERN = /^space-\d+(@[A-Za-z0-9_-]+)?(\.\d+)?\.json$/;
 
 /**
@@ -180,6 +195,7 @@ export class PageLedgerStore {
     assertSpaceId(spaceId);
     const browserInstanceId = await this.#currentBrowserInstanceId();
     await this.#removeAll(await this.#listVersions(spaceId, browserInstanceId));
+    await this.#removeSnapshotBases(spaceId);
   }
 
   /**
@@ -197,6 +213,7 @@ export class PageLedgerStore {
     }
     ledger.retainedTargets = [...targetIds];
     await this.#writeLatest(spaceId, ledger);
+    await this.#removeSnapshotBases(spaceId);
   }
 
   async getPage(spaceId: number, label: string): Promise<ManagedPage> {
@@ -260,6 +277,77 @@ export class PageLedgerStore {
     });
   }
 
+  async readSnapshotBase(
+    spaceId: number,
+    label: string,
+  ): Promise<SnapshotBase | undefined> {
+    assertSpaceId(spaceId);
+    assertLabel(label);
+    const path = await this.#snapshotBasePath(spaceId, label);
+    try {
+      const value = JSON.parse(await this.#read(path));
+      return typeof value?.id === "string" &&
+        typeof value.targetId === "string" &&
+        typeof value.key === "string" &&
+        typeof value.body === "string"
+        ? value
+        : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Store a new diff base and return its id. If the write fails the old base
+   * is removed, so a later diff can never be taken against a snapshot other
+   * than the one the agent was last shown.
+   */
+  async writeSnapshotBase(
+    spaceId: number,
+    label: string,
+    base: Omit<SnapshotBase, "id">,
+  ): Promise<string | undefined> {
+    const previous = await this.readSnapshotBase(spaceId, label);
+    const sequence = Number(previous?.id.slice(1)) || 0;
+    const id = `d${sequence + 1}`;
+    const path = await this.#snapshotBasePath(spaceId, label);
+    try {
+      await mkdir(join(this.rootDir, SNAPSHOT_BASE_DIR), { recursive: true });
+      await writeFile(path, JSON.stringify({ ...base, id }));
+      return id;
+    } catch {
+      await this.#remove(path).catch(() => {});
+      return undefined;
+    }
+  }
+
+  async #snapshotBasePath(spaceId: number, label: string): Promise<string> {
+    const scope = scopeSuffix(await this.#currentBrowserInstanceId());
+    return join(
+      this.rootDir,
+      SNAPSHOT_BASE_DIR,
+      `space-${spaceId}${scope}-${safeFileLabel(label)}.json`,
+    );
+  }
+
+  async #removeSnapshotBases(spaceId: number, label?: string): Promise<void> {
+    if (label !== undefined) {
+      await this.#remove(await this.#snapshotBasePath(spaceId, label)).catch(
+        () => {},
+      );
+      return;
+    }
+    const scope = scopeSuffix(await this.#currentBrowserInstanceId());
+    const prefix = `space-${spaceId}${scope}-`;
+    const dir = join(this.rootDir, SNAPSHOT_BASE_DIR);
+    const names = await readdir(dir).catch(() => [] as string[]);
+    await Promise.all(
+      names
+        .filter((name) => name.startsWith(prefix))
+        .map((name) => this.#remove(join(dir, name)).catch(() => {})),
+    );
+  }
+
   async closePage(spaceId: number, label: string): Promise<ManagedPage> {
     assertLabel(label);
     let removed: ManagedPage;
@@ -277,6 +365,7 @@ export class PageLedgerStore {
       removed = { label, ...entry };
       delete ledger.pages[label];
     });
+    await this.#removeSnapshotBases(spaceId, label);
     return removed!;
   }
 
@@ -299,6 +388,7 @@ export class PageLedgerStore {
       ledger.releasedLabels.push(label);
       ledger.unmanagedTargets[entry.targetId] = entry.openedBy;
     });
+    await this.#removeSnapshotBases(spaceId, label);
     return removed!;
   }
 
@@ -628,6 +718,17 @@ export class PageLedgerStore {
   }
 
   async #removeExpiredLedgers(browserInstanceId: string): Promise<void> {
+    const baseDir = join(this.rootDir, SNAPSHOT_BASE_DIR);
+    const baseNames = await readdir(baseDir).catch(() => [] as string[]);
+    await Promise.all(
+      baseNames.map(async (name) => {
+        const path = join(baseDir, name);
+        const metadata = await stat(path).catch(() => undefined);
+        if (metadata && this.#now() - metadata.mtimeMs >= this.#staleAfterMs) {
+          await rm(path, { force: true });
+        }
+      }),
+    );
     let names: string[];
     try {
       names = await readdir(this.rootDir);
@@ -698,6 +799,14 @@ export class PageLedgerStore {
   #legacyPath(spaceId: number): string {
     return `${this.#base(spaceId)}.json`;
   }
+}
+
+/** A Page label as a portable file-name fragment. */
+function safeFileLabel(label: string): string {
+  return label.replace(
+    /[^A-Za-z0-9_-]/g,
+    (character) => `_x${character.codePointAt(0)!.toString(16)}`,
+  );
 }
 
 function scopeSuffix(browserInstanceId: string | undefined): string {

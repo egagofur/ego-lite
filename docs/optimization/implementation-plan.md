@@ -12,7 +12,7 @@ snapshot and must be lossless; anything lossy is opt-in.
 | O5 | `goto("/path")` resolves against the current document | enables O1 | low | low | done |
 | O6 | Reuse post-capture frame sessions for the document check (fresh read if one detached) | small (B5) | low | low | done |
 | O7 | Screenshot: one `Runtime.evaluate` instead of two | small (B6) | low | low | done |
-| D1 | Snapshot diff for unchanged pages | medium | high | medium | deferred |
+| O8 | Opt-in `snapshot({ diff })` with explicit snapshot ids | very high on re-observation | medium | none by default | done |
 | D2 | Prune list items / decorative images by default | medium | low | medium | rejected |
 | D3 | Batch or skip per-locator `DOM.describeNode` | latency on large pages | high | high | rejected |
 | D4 | Rewrite the Skill for size | ~6k tokens/session | low | high | deferred |
@@ -89,11 +89,36 @@ URLs take the old path with no extra call.
 - O7: screenshot reads the device pixel ratio and viewport geometry in one
   `Runtime.evaluate`.
 
-## Deferred / rejected
+## O8 — Diff snapshots (opt-in)
 
-- D1 diff mode: needs the previous text per Page in the ledger (hundreds of KB
-  rewritten per snapshot on large pages) and a rule for when a diff is safe
-  to act on. Worth a separate design.
+1. Current: every re-observation reprints the whole snapshot, even when an
+   action changed two lines or nothing.
+2. Problem: after the first look at a Page, most snapshot tokens repeat text
+   the agent already has.
+3. Solution (`snapshot-diff.ts`, `page-ledger.ts`, `Page.snapshot`):
+   - `diff: true` prints the full snapshot plus `snapshot id dN` and stores
+     that exact body as the Page's diff base (`snapshot-bases/`, outside the
+     ledger, removed on close/release/finish, expired with stale ledgers).
+   - `diff: "dN"` prints `[unchanged since dN …]`, or a unified diff (Myers,
+     2 context lines, hunk headers name the enclosing node), and stores the
+     new body as `dN+1`.
+   - The full snapshot is printed instead, with the reason, when `dN` is not
+     the latest base for that Page, the scope/root/interactive/marks options
+     differ, the target changed, or the diff would be over half the size.
+   - Diffs are only ever taken against an id the caller names. An id is only
+     printed together with the text it identifies, so a diff is always
+     relative to text the agent was shown — never against a snapshot from
+     another conversation or one that was not printed.
+4. Benefit: re-observation after a small action costs 75–566 tokens instead
+   of ~2.9k on the dashboard fixture; an unchanged page costs ~75 tokens.
+5. Regression: none unless used. Writing the base costs one local file write
+   per `diff` snapshot; a failed write prints no id and removes the base.
+6. Validation: unit tests (round trip, 300 randomized edits, fallbacks,
+   stale ids, option mismatch, ledger cleanup, write failure); real-browser
+   E2E rebuilding a fresh full snapshot from base + diff; benchmark
+   reconstruction of every diff chain against a plain snapshot.
+
+## Deferred / rejected
 - D2: `docs/native-snapshot-ref-requirement.md` deliberately keeps list items,
   images and SVG roots; removing them by default is lossy. `interactive`
   covers the cheap-view use case instead.

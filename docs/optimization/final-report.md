@@ -66,6 +66,47 @@ The header now carries the Page URL (+5–15 tokens), so tiny pages see a
 smaller net gain than the body alone; the URL also replaces a separate
 `page.url()` round an agent would otherwise spend to confirm navigation.
 
+## Diff snapshots (O8, opt-in)
+
+Measured live, 3 runs, medians ([`data/diff-summary.json`](data/diff-summary.json)).
+`check:*` are plain snapshots taken right after, for comparison and
+verification.
+
+| Observation (dashboard fixture, full page) | Plain snapshot | With `diff` | Δ |
+|---|---:|---:|---:|
+| first look (`diff: true`) | 2471 | 2480 | +0.4 % (id line) |
+| after "Load more" (5 rows added) | 2859 | 566 | −80.2 % |
+| repeat, page unchanged | 2859 | 75 | −97.4 % |
+| after typing into a field | 2876 | 307 | −89.3 % |
+
+| Public page, viewport | Plain | Unchanged repeat | After 600 px scroll |
+|---|---:|---:|---:|
+| Wikipedia | 3023 | 70 | 2988 (full: new content) |
+| Python docs | 2323 | 83 | 2180 (full) |
+| GitHub | 3939 | 81 | 4032 (full) |
+| MDN | 2289 | 84 | 1511 (diff) |
+| httpbin form | 389 | 70 | 70 (page fits; unchanged) |
+
+Agent-flow totals on the dashboard (observe → act → observe → re-observe):
+
+| Flow | Tokens | vs original baseline |
+|---|---:|---:|
+| Original build, plain snapshots (3571 + 4139 + 4139) | 11849 | – |
+| This branch, plain snapshots (2471 + 2859 + 2859) | 8189 | −30.9 % |
+| This branch, `diff` snapshots (2480 + 566 + 75) | 3121 | **−73.7 %** |
+
+Every additional re-observation of the same Page costs 75–600 tokens instead
+of a full snapshot, so longer sessions on one Page go past 80 %. Scrolling a
+viewport changes most of its lines and correctly falls back to the full
+snapshot, so reading a long page by scrolling gains little; `full_page` with
+`diff` covers that case.
+
+**Quality check:** the benchmark rebuilds every diff chain (base + each
+unchanged/diff output) and compares it with the plain snapshot taken right
+after: **21/21 exact**, including the five public sites. The real-browser E2E
+case "Page snapshot diff" asserts the same against a fresh full snapshot, and
+a unit test applies 300 randomized edits.
+
 ## CDP, latency, CPU, memory
 
 | Metric | Baseline | Final | Note |
@@ -96,10 +137,10 @@ process between invocations. Browser idle CPU belongs to Ego Lite.
 
 | Check | Result |
 |---|---|
-| `npm test` (build, skill-translation guard, `tsc --noEmit`, unit tests) | pass, 668/668 (baseline 662; +6 new) |
+| `npm test` (build, skill-translation guard, guide-size guard, `tsc --noEmit`, unit tests) | pass, 676/676 (baseline 662; +14 new) |
 | `npm run style:check` | pass |
 | `npm run validate:site-skills` | pass |
-| `npm run e2e` real browser, final code | pass, 84/84 cases (83 existing + new "Page snapshot compact output", 17 assertions) |
+| `npm run e2e` real browser, final code | pass, 85/85 cases (83 existing + "Page snapshot compact output", 17 assertions + "Page snapshot diff", 11 assertions) |
 
 E2E history during the work, for transparency: one intermediate full run had
 a single failure, `Page click hit target`, with `CDP request timed out:
@@ -126,7 +167,10 @@ browser restart.
   gives the target. Refs, locators and text are unchanged.
 - Header: `[p1 "Title" <url> | space … — p1*, p2 "Other"]` (URL added;
   current Page's title not repeated).
-- New: `page.snapshot({ interactive: true })`; `page.goto("/path")`.
+- New: `page.snapshot({ interactive: true })`, `page.snapshot({ diff })`;
+  `page.goto("/path")`. `diff` stores the last diff snapshot body per Page
+  under the state directory (`snapshot-bases/`), removed when the Page or
+  task ends.
 - No API removed; no option's default changed; v1 helpers get the text
   folding (shared compaction) but not the URL rewrite (no header there).
 
@@ -136,7 +180,8 @@ browser restart.
    locator (534 on Wikipedia full page) and full AX trees per frame for role
    locators (~8 MB inbound on MDN). Needs a batch primitive in the native
    bridge or native-side validation.
-2. Unchanged-page repeats cost a full snapshot (diff mode deferred, D1).
+2. Diff mode only helps when the agent opts in; scrolling a viewport still
+   reprints most of it.
 3. The Skill body (~25 KB) is the largest fixed per-session cost; trimming it
    needs agent-behavior evals.
 4. Indentation (9–13 %) and `[ref=` metadata (10–14 %) are the largest

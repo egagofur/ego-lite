@@ -18,6 +18,7 @@ import {
   PageUnresponsiveError,
 } from "../dist/src/browser-runtime.js";
 import { PageLedgerStore } from "../dist/src/page-ledger.js";
+import { applySnapshotDiff } from "../dist/src/snapshot-diff.js";
 import { flushSink, resetSink } from "../dist/src/output-sink.js";
 import {
   captureTaskSpaceUserBoundary,
@@ -2987,8 +2988,8 @@ test("snapshot defaults to the viewport, reports its source, and validates optio
     );
 
     await assert.rejects(
-      () => page.snapshot({ diff: true }),
-      /page\.snapshot received unknown option: diff/,
+      () => page.snapshot({ since: true }),
+      /page\.snapshot received unknown option: since/,
     );
   });
 });
@@ -3283,6 +3284,72 @@ test("a snapshot rereads frames when a reused frame session detached after captu
       3,
       "before-capture read, capture read, and one fresh read after the detach",
     );
+  });
+});
+
+test("diff snapshots print only changes against the id the caller names", async () => {
+  await withFixture(async (fixture) => {
+    const rows = (count) =>
+      Array.from(
+        { length: count },
+        (_, index) => `    table_cell "Order ${index}" [ref=${index + 1}]`,
+      );
+    let content = ["root", "  table", ...rows(30)].join("\n");
+    const task = taskForRound(fixture, "round-a", {
+      async snapshot(options) {
+        fixture.snapshotOptions.push(options);
+        return { content, refs: [] };
+      },
+    });
+    const page = await openTestPage(task, "https://example.test/orders");
+    const body = (text) => text.split("\n").slice(2).join("\n");
+
+    const first = await page.snapshot({ diff: true });
+    assert.match(first.split("\n")[1], /^\[full snapshot; snapshot id d1\]$/);
+    assert.equal(body(first), content);
+    assert.equal("diff" in fixture.snapshotOptions.at(-1), false);
+
+    assert.equal(
+      (await page.snapshot({ diff: "d1" })).split("\n")[1],
+      "[unchanged since d1: all 32 lines and refs are the same; snapshot id d2]",
+    );
+
+    const previous = content;
+    content = ["root", "  table", ...rows(31)]
+      .join("\n")
+      .replace('"Order 4"', '"Order 4 refunded"');
+    const changed = await page.snapshot({ diff: "d2" });
+    const [, note, ...diffLines] = changed.split("\n");
+    assert.equal(
+      note,
+      "[changes since d2: +2 -1 lines in unified diff form; other lines and their refs are unchanged; snapshot id d3]",
+    );
+    assert.equal(
+      applySnapshotDiff(previous, diffLines.join("\n")),
+      content,
+      "the printed diff reproduces the full snapshot exactly",
+    );
+    assert(diffLines.join("\n").length < content.length / 2);
+
+    const stale = await page.snapshot({ diff: "d1" });
+    assert.match(
+      stale.split("\n")[1],
+      /^\[full snapshot, d1 is not the latest diff snapshot of p1; snapshot id d4\]$/,
+    );
+    assert.equal(body(stale), content);
+
+    const otherScope = await page.snapshot({ diff: "d4", scope: "full_page" });
+    assert.match(otherScope.split("\n")[1], /d4 was taken with other options/);
+
+    assert.doesNotMatch(await page.snapshot(), /snapshot id/);
+    await assert.rejects(
+      () => page.snapshot({ diff: "latest" }),
+      /snapshot id/,
+    );
+
+    await page.close();
+    const ledger = new PageLedgerStore({ rootDir: fixture.rootDir });
+    assert.equal(await ledger.readSnapshotBase(task.spaceId, "p1"), undefined);
   });
 });
 

@@ -99,6 +99,7 @@ import {
   runtimeInstanceId,
   type ManagedPage,
   type PageLedger,
+  type SnapshotBase,
   type PageOrigin,
 } from "./page-ledger.js";
 import {
@@ -106,6 +107,7 @@ import {
   pageRefDocumentId,
   type PageRefState,
 } from "./page-ref-registry.js";
+import { diffSnapshotBodies, type SnapshotDiff } from "./snapshot-diff.js";
 import {
   compactSnapshotUrls,
   filterInteractiveSnapshot,
@@ -340,6 +342,8 @@ type PageSnapshotOptions = Omit<SnapshotOptions, "root"> & {
   root?: string;
   /** Keep only actionable nodes plus headings, dialogs, and frames. */
   interactive?: boolean;
+  /** true, or the id of an earlier snapshot to print only changes since. */
+  diff?: true | string;
 };
 
 type PageScreenshotOptions = Omit<CaptureScreenshotOptions, "full"> & {
@@ -469,6 +473,15 @@ type LedgerPort = {
     refs: PageRefState,
   ): Promise<void>;
   closePage(spaceId: number, label: string): Promise<ManagedPage>;
+  readSnapshotBase?(
+    spaceId: number,
+    label: string,
+  ): Promise<SnapshotBase | undefined>;
+  writeSnapshotBase?(
+    spaceId: number,
+    label: string,
+    base: Omit<SnapshotBase, "id">,
+  ): Promise<string | undefined>;
   releasePage(spaceId: number, label: string): Promise<ManagedPage>;
   keepUnmanaged(
     spaceId: number,
@@ -2030,6 +2043,7 @@ class Page {
       const {
         root: _root,
         interactive: _interactive,
+        diff: _diff,
         ...snapshotOptions
       } = options;
       const snapshotScope = options.scope ?? "only_within_viewport";
@@ -2126,11 +2140,66 @@ class Page {
         snapshotScope === "only_within_viewport"
           ? await this.#viewportOverflowHint(sessionId)
           : "";
-      if (!overflow) return `${header}\n${content}`;
       // The native content ends with a newline; keep the hint directly below
       // the last node instead of after a blank line.
-      return `${header}\n${content.replace(/\n+$/, "")}\n${overflow}`;
+      const body = overflow
+        ? `${content.replace(/\n+$/, "")}\n${overflow}`
+        : content;
+      if (options.diff === undefined) return `${header}\n${body}`;
+      return this.#diffSnapshotOutput(page, options, header, body);
     });
+  }
+
+  /**
+   * Print a snapshot for `diff`: the full snapshot or only its changes, plus
+   * the id the next call can diff against. A diff is printed only against
+   * the id the caller names, so it is always relative to text the caller was
+   * shown; any other case prints the full snapshot and says why.
+   */
+  async #diffSnapshotOutput(
+    page: PageTarget,
+    options: PageSnapshotOptions,
+    header: string,
+    body: string,
+  ): Promise<string> {
+    const ledger = this.#services.ledger;
+    const key = JSON.stringify([
+      options.scope ?? "only_within_viewport",
+      options.root ?? null,
+      Boolean(options.interactive),
+      options.includeActionMarks ?? true,
+      options.includeStableLocator ?? true,
+    ]);
+    let diff: SnapshotDiff = { kind: "full" };
+    let reason = "";
+    if (typeof options.diff === "string") {
+      const base = await ledger
+        .readSnapshotBase?.(this.spaceId, this.label)
+        .catch(() => undefined);
+      if (!base || base.id !== options.diff) {
+        reason = `${options.diff} is not the latest diff snapshot of ${this.label}`;
+      } else if (base.targetId !== page.targetId || base.key !== key) {
+        reason = `${options.diff} was taken with other options`;
+      } else {
+        diff = diffSnapshotBodies(base.body, body);
+        if (diff.kind === "full") reason = "too many changes for a diff";
+      }
+    }
+    const id = await ledger
+      .writeSnapshotBase?.(this.spaceId, this.label, {
+        targetId: page.targetId,
+        key,
+        body,
+      })
+      .catch(() => undefined);
+    const next = id ? `snapshot id ${id}` : "no snapshot id";
+    if (diff.kind === "unchanged") {
+      return `${header}\n[unchanged since ${options.diff}: all ${diff.lines} lines and refs are the same; ${next}]`;
+    }
+    if (diff.kind === "diff") {
+      return `${header}\n[changes since ${options.diff}: +${diff.added} -${diff.removed} lines in unified diff form; other lines and their refs are unchanged; ${next}]\n${diff.text}`;
+    }
+    return `${header}\n[full snapshot${reason ? `, ${reason}` : ""}; ${next}]\n${body}`;
   }
 
   /**

@@ -157,10 +157,35 @@ try {
   await step("app:repeat", () => page.snapshot({ scope: "full_page" }));
   await step("app:screenshot", () => page.screenshot());
 
+  // The same observations as app:full / app:dynamic / app:repeat, taken with
+  // diff ids; check:* are plain snapshots used only to verify reconstruction.
+  const idOf = (text) => text?.split("\\n")[1]?.match(/snapshot id (d\\d+)\\]$/)?.[1];
+  await step("flow:goto", () => page.goto(ORIGIN + "/app.html"));
+  let id = idOf(await step("flow:full", () => page.snapshot({ scope: "full_page", diff: true })));
+  id = idOf(await step("flow:dynamic", async () => {
+    await page.click("loc=role:button[name='Load more orders']");
+    return page.snapshot({ scope: "full_page", diff: id });
+  }));
+  await step("check:dynamic", () => page.snapshot({ scope: "full_page" }));
+  id = idOf(await step("flow:repeat", () => page.snapshot({ scope: "full_page", diff: id })));
+  id = idOf(await step("flow:fill", async () => {
+    await page.fill("loc=css:#name", "Ada Lovelace");
+    return page.snapshot({ scope: "full_page", diff: id });
+  }));
+  await step("check:fill", () => page.snapshot({ scope: "full_page" }));
+
   for (const [name, url] of PUBLIC) {
     await step(name + ":goto", () => page.goto(url, { timeout: 30000 }));
     await step(name + ":viewport", () => page.snapshot());
     await step(name + ":full", () => page.snapshot({ scope: "full_page" }));
+    let pid = idOf(await step(name + ":vdiff1", () => page.snapshot({ diff: true })));
+    pid = idOf(await step(name + ":vrepeat", () => page.snapshot({ diff: pid })));
+    await step(name + ":vscroll", async () => {
+      await page.mouse.wheel(0, 600);
+      await page.waitForTimeout(300);
+      return page.snapshot({ diff: pid });
+    });
+    await step(name + ":vcheck", () => page.snapshot());
   }
 } finally {
   phase = "teardown";
@@ -240,6 +265,70 @@ export async function summarize(results) {
   };
 }
 
+/**
+ * Rebuild each diff-based observation from the previous one and compare it
+ * with the plain snapshot taken right after it. Local fixtures must match
+ * exactly; a live public page may legitimately change in between.
+ */
+export async function verifyDiffFlows(results) {
+  const { applySnapshotDiff } = await import(
+    join(packageDir, "dist", "src", "snapshot-diff.js")
+  );
+  const body = (text) => text.split("\n").slice(2).join("\n");
+  const plain = (text) => text.split("\n").slice(1).join("\n");
+  const next = (previous, text) => {
+    const note = text.split("\n")[1] ?? "";
+    if (note.startsWith("[unchanged")) return previous;
+    if (note.startsWith("[changes"))
+      return applySnapshotDiff(previous, body(text));
+    return body(text);
+  };
+  const checks = [];
+  for (const [index, run] of results.entries()) {
+    const out = run.outputs;
+    const chains = [
+      ["app", ["flow:full", "flow:dynamic"], "check:dynamic"],
+      [
+        "app",
+        ["flow:full", "flow:dynamic", "flow:repeat", "flow:fill"],
+        "check:fill",
+      ],
+      ...PUBLIC_PAGES.map(([name]) => [
+        name,
+        [`${name}:vdiff1`, `${name}:vrepeat`, `${name}:vscroll`],
+        `${name}:vcheck`,
+      ]),
+    ];
+    for (const [name, steps, check] of chains) {
+      if (
+        !steps.every((step) => out[step]?.includes("snapshot id")) ||
+        !out[check] ||
+        out[check].startsWith("ERROR")
+      )
+        continue;
+      let current = "";
+      try {
+        for (const step of steps) current = next(current, out[step]);
+        checks.push({
+          run: index,
+          name,
+          check,
+          exact: current === plain(out[check]),
+        });
+      } catch (error) {
+        checks.push({
+          run: index,
+          name,
+          check,
+          exact: false,
+          error: error.message,
+        });
+      }
+    }
+  }
+  return checks;
+}
+
 export function markdown(summary) {
   const lines = [
     `Runs: ${summary.runs}; tokenizer: ${summary.tokenizer}`,
@@ -280,11 +369,21 @@ async function main() {
     server.close();
   }
   const summary = await summarize(results);
+  summary.diffChecks = await verifyDiffFlows(results);
   await writeFile(
     join(outDir, `${label}.json`),
     JSON.stringify({ summary, results }, null, 2),
   );
   console.log(markdown(summary));
+  const exact = summary.diffChecks.filter((check) => check.exact).length;
+  console.log(
+    `\nDiff reconstruction: ${exact}/${summary.diffChecks.length} exact`,
+  );
+  for (const check of summary.diffChecks.filter((item) => !item.exact)) {
+    console.log(
+      `  mismatch run ${check.run} ${check.name} vs ${check.check}${check.error ? `: ${check.error}` : ""}`,
+    );
+  }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

@@ -239,11 +239,12 @@ viewport, the snapshot ends with a `[more content below the viewport: ...]`
 line: nodes are omitted, not absent. If the expected result may land below
 the fold, scroll or use `full_page` before concluding it did not appear.
 
-The first line names the Page and its URL. Same-origin link targets are
-relative to that URL (`url=/path`), and a link whose `loc=href:` already gives
-its target omits `url=`; `goto()` accepts `/path` directly. To choose a target
-on a large page, `page.snapshot({ interactive: true })` prints only nodes with
-refs plus headings, dialogs, and frames; use a normal snapshot to read text.
+The first line shows the Page URL; same-origin `url=` values are relative to
+it, and `goto("/path")` works. `snapshot({ interactive: true })` prints only
+ref nodes, headings, dialogs, and frames. `diff: true` adds an id such as
+`d3`; later, `diff: "d3"` with the same options prints only changed lines as a
+unified diff (other refs stay valid), or the full snapshot if `d3` is stale.
+Pass only ids printed in this conversation.
 
 The default viewport snapshot includes visible iframe content returned by the
 browser. To focus on a frame's subtree, reuse the ref printed on its `iframe`
