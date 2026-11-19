@@ -7,6 +7,7 @@ export type PublicApiOptionKind =
   | "pageRetention"
   | "positiveInteger"
   | "positiveMilliseconds"
+  | "snapshotDiff"
   | "string"
   | "stringRecord"
   | "point";
@@ -204,7 +205,7 @@ export const PUBLIC_API_SCHEMA: readonly PublicApiEntry[] = [
     name: "Page.goto",
     signature: "await page.goto(url, { referer?, timeout?, waitUntil? })",
     summary:
-      "Navigate this Page in place. Timeout errors report whether the new document committed, plus its URL and readyState when available. A navigation that has not committed by the timeout is stopped so the Page stays usable on its previous document.",
+      "Navigate this Page in place; a root-relative url such as /path resolves against the current document. Timeout errors report whether the new document committed, plus its URL and readyState when available. A navigation that has not committed by the timeout is stopped so the Page stays usable on its previous document.",
     options: {
       referer: option(
         "nonEmptyString",
@@ -235,7 +236,7 @@ export const PUBLIC_API_SCHEMA: readonly PublicApiEntry[] = [
   {
     name: "Page.snapshot",
     signature:
-      "await page.snapshot({ scope?, root?, includeActionMarks?, includeStableLocator? })",
+      "await page.snapshot({ scope?, root?, interactive?, diff?, includeActionMarks?, includeStableLocator? })",
     summary:
       "Return a semantic snapshot of the current viewport, full Page, or one snapshot-ref subtree with Page provenance.",
     options: {
@@ -247,6 +248,14 @@ export const PUBLIC_API_SCHEMA: readonly PublicApiEntry[] = [
       root: option(
         "nonEmptyString",
         "Valid Page snapshot ref such as @21; required only when scope is subtree. Partial snapshots preserve existing node identities.",
+      ),
+      interactive: option(
+        "boolean",
+        "Print only ref-bearing nodes plus headings, dialogs, and frames; link and button names come from their text. Body text is omitted, so use the default snapshot to read content.",
+      ),
+      diff: option(
+        "snapshotDiff",
+        "true prints the full snapshot plus a snapshot id such as d3; passing that id later prints only the lines changed since that snapshot (same Page and options), or the full snapshot again when the id is not the latest or a diff would not be clearly smaller.",
       ),
       includeActionMarks: option("boolean", "Include action marks."),
       includeStableLocator: option("boolean", "Include stable locators."),
@@ -745,6 +754,10 @@ function validateOptionValue(
     case "positiveMilliseconds":
       valid = typeof value === "number" && Number.isFinite(value) && value > 0;
       break;
+    case "snapshotDiff":
+      valid =
+        value === true || (typeof value === "string" && /^d\d+$/.test(value));
+      break;
     case "string":
       valid = typeof value === "string";
       break;
@@ -779,6 +792,11 @@ function validateOptionValue(
     if (specification.kind === "pageRetention") {
       throw new TypeError(
         `${apiName} ${optionName} must be "all" or an array of unique non-empty Page labels`,
+      );
+    }
+    if (specification.kind === "snapshotDiff") {
+      throw new TypeError(
+        `${apiName} ${optionName} must be true or a snapshot id such as "d3" printed by an earlier snapshot`,
       );
     }
     if (specification.kind === "stringRecord") {

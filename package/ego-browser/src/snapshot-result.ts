@@ -90,13 +90,270 @@ export function compactSnapshotResult(result: SnapshotResult): SnapshotResult {
   return result;
 }
 
+/**
+ * Roles whose accessible name is computed from their content (WAI-ARIA "name
+ * from content"). For these, a lone text child is the node's name, so printing
+ * it on the node's own line loses nothing and saves a line per link, button,
+ * heading, or cell.
+ */
+const NAME_FROM_CONTENT_ROLES = new Set([
+  "anchor",
+  "link",
+  "button",
+  "heading",
+  "tab",
+  "cell",
+  "table_cell",
+  "columnheader",
+  "column_header",
+  "rowheader",
+  "row_header",
+  "menuitem",
+  "menu_item",
+  "menu_item_checkbox",
+  "menu_item_radio",
+  "option",
+  "list_box_option",
+  "treeitem",
+  "tree_item",
+  "switch",
+  "docbacklink",
+  "docnoteref",
+]);
+
 function compactSnapshotNode(node: SnapshotTreeNode): SnapshotTreeNode[] {
   const text = omitUnusableLocatorStatus(node.text);
   const children = node.children.flatMap(compactSnapshotNode);
   if (isEmptySnapshotText(text)) return [];
   if (text === "container" && children.length === 0) return [];
   if (text === "container" && children.length === 1) return children;
-  return [{ text, children }];
+  return [foldSoleTextChild(text, children)];
+}
+
+/**
+ * Fold a node's only child into the node when that child is a plain text leaf
+ * that is (or duplicates) the node's accessible name:
+ *
+ *   anchor [ref=4, url=/a]        ->  anchor "Docs" [ref=4, url=/a]
+ *     text "Docs"
+ *   button "Search" [ref=5]       ->  button "Search" [ref=5]
+ *     text "Search"
+ *
+ * Text is never dropped unless the same string is already on the parent line.
+ * Roles whose name is not computed from content (textbox, paragraph, list
+ * item, container, ...) keep their text child, because there the text is a
+ * value, placeholder, or body rather than the name.
+ */
+function foldSoleTextChild(
+  text: string,
+  children: SnapshotTreeNode[],
+): SnapshotTreeNode {
+  if (children.length !== 1 || children[0].children.length !== 0) {
+    return { text, children };
+  }
+  const childName = snapshotTextLeafValue(children[0].text);
+  if (childName === undefined) return { text, children };
+  const role = text.match(/^[a-z_]+/)?.[0];
+  if (!role) return { text, children };
+  const rest = text.slice(role.length);
+  const metadataIndex = findSnapshotMetadataStart(rest);
+  const beforeMetadata =
+    metadataIndex < 0 ? rest : rest.slice(0, metadataIndex);
+  const nameMatch = beforeMetadata.match(/^ ("(?:\\.|[^"\\])*")\s*$/);
+  if (nameMatch) {
+    // Named node whose only child repeats the name verbatim.
+    return children[0].text === `text ${nameMatch[1]}`
+      ? { text, children: [] }
+      : { text, children };
+  }
+  if (beforeMetadata.trim() !== "" || !NAME_FROM_CONTENT_ROLES.has(role)) {
+    return { text, children };
+  }
+  const metadata = metadataIndex < 0 ? "" : rest.slice(metadataIndex);
+  return {
+    text: `${role} ${childName}${metadata ? ` ${metadata}` : ""}`,
+    children: [],
+  };
+}
+
+/** Context nodes kept by the interactive filter even without a ref. */
+const INTERACTIVE_CONTEXT_ROLES = new Set([
+  "root",
+  "iframe",
+  "heading",
+  "dialog",
+  "alertdialog",
+]);
+const INTERACTIVE_DERIVED_NAME_MAX = 100;
+
+/**
+ * Reduce compacted snapshot content to actionable nodes: every ref-bearing
+ * node plus root, iframe, heading, and dialog lines for orientation. Kept
+ * nodes are re-indented under their nearest kept ancestor. A ref-bearing node
+ * whose name comes from content but has none gets the text it contains as its
+ * name (capped at 100 characters, marked with …); other ref-bearing controls
+ * keep their own text leaves (a field's value). Everything else, including
+ * body text, is omitted: this is an opt-in first pass, and the full snapshot
+ * or a `subtree` snapshot of a ref shows the rest.
+ */
+export function filterInteractiveSnapshot(content: string): string {
+  if (typeof content !== "string" || content.length === 0) return content;
+  const newline = content.includes("\r\n") ? "\r\n" : "\n";
+  const trailingNewline = content.endsWith(newline);
+  const lines = content.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  const rootIndex = lines.findIndex((line) => line.trim() === "root");
+  if (rootIndex < 0) return content;
+
+  const roots: SnapshotTreeNode[] = [];
+  const stack: Array<{ indent: number; node: SnapshotTreeNode }> = [];
+  for (const line of lines.slice(rootIndex)) {
+    const indent = line.length - line.trimStart().length;
+    if (indent % 2 !== 0) return content;
+    const node: SnapshotTreeNode = { text: line.trim(), children: [] };
+    while (stack.length && stack.at(-1)!.indent >= indent) stack.pop();
+    if (stack.length) stack.at(-1)!.node.children.push(node);
+    else roots.push(node);
+    stack.push({ indent, node });
+  }
+
+  const isKept = (node: SnapshotTreeNode) =>
+    findSnapshotMetadataStart(node.text) >= 0 ||
+    INTERACTIVE_CONTEXT_ROLES.has(node.text.match(/^[a-z_]+/)?.[0] ?? "");
+
+  // Text under a node that is not under a nested kept node.
+  const ownText = (node: SnapshotTreeNode, parts: string[] = []) => {
+    for (const child of node.children) {
+      const value = snapshotTextLeafValue(child.text);
+      if (value !== undefined && child.children.length === 0) {
+        try {
+          const text = JSON.parse(value);
+          if (typeof text === "string" && text.trim()) parts.push(text.trim());
+        } catch {
+          // Leave malformed literals out of the derived name.
+        }
+      } else if (!isKept(child)) {
+        ownText(child, parts);
+      }
+    }
+    return parts;
+  };
+
+  const withDerivedName = (node: SnapshotTreeNode): string => {
+    const role = node.text.match(/^[a-z_]+/)?.[0];
+    if (!role || !NAME_FROM_CONTENT_ROLES.has(role)) return node.text;
+    const rest = node.text.slice(role.length);
+    if (!rest.startsWith(" [")) return node.text;
+    let name = ownText(node).join(" ").replace(/\s+/g, " ");
+    if (!name) return node.text;
+    if (name.length > INTERACTIVE_DERIVED_NAME_MAX) {
+      name = `${name.slice(0, INTERACTIVE_DERIVED_NAME_MAX)}…`;
+    }
+    return `${role} ${JSON.stringify(name)}${rest}`;
+  };
+
+  const output: string[] = [];
+  const visit = (nodes: SnapshotTreeNode[], depth: number) => {
+    for (const node of nodes) {
+      if (isKept(node)) {
+        output.push(`${"  ".repeat(depth)}${withDerivedName(node)}`);
+        const role = node.text.match(/^[a-z_]+/)?.[0] ?? "";
+        if (
+          !NAME_FROM_CONTENT_ROLES.has(role) &&
+          findSnapshotMetadataStart(node.text) >= 0
+        ) {
+          // A control's own text is its value or placeholder: keep it.
+          for (const child of node.children) {
+            if (
+              child.children.length === 0 &&
+              snapshotTextLeafValue(child.text) !== undefined
+            ) {
+              output.push(`${"  ".repeat(depth + 1)}${child.text}`);
+            }
+          }
+        }
+        visit(node.children, depth + 1);
+      } else {
+        visit(node.children, depth);
+      }
+    }
+  };
+  visit(roots, 0);
+  const rendered = [...lines.slice(0, rootIndex), ...output].join(newline);
+  return rendered + (trailingNewline ? newline : "");
+}
+
+/** Return the quoted literal of a `text "..."` leaf, or undefined. */
+function snapshotTextLeafValue(text: string): string | undefined {
+  const match = text.match(/^text ("(?:\\.|[^"\\])*")$/);
+  return match ? match[1] : undefined;
+}
+
+/**
+ * Shorten `url=` metadata against the Page URL printed in the snapshot
+ * header. The absolute URL stays recoverable with `new URL(value, pageUrl)`:
+ *
+ * - dropped when the line's `loc=href:` already resolves to the same URL;
+ * - written as a root-relative path (`/path?query#hash`) when same-origin;
+ * - left unchanged for other origins, non-HTTP schemes, or unparsable values.
+ *
+ * Only metadata is rewritten; quoted names and locator values are untouched.
+ */
+export function compactSnapshotUrls(content: string, pageUrl: string): string {
+  if (typeof content !== "string" || content.length === 0) return content;
+  let base: URL;
+  try {
+    base = new URL(pageUrl);
+  } catch {
+    return content;
+  }
+  if (base.protocol !== "http:" && base.protocol !== "https:") return content;
+  return content.replace(/[^\r\n]+/g, (line) => {
+    const start = findSnapshotMetadataStart(line);
+    if (start < 0) return line;
+    const metadata = line.slice(start);
+    if (!metadata.endsWith("]")) return line;
+    // `url=` is always the last metadata key; its value may contain commas.
+    const urlIndex = metadata.indexOf(", url=");
+    if (urlIndex < 0) return line;
+    const raw = metadata.slice(urlIndex + ", url=".length, -1);
+    const shortened = shortenSnapshotUrl(
+      raw,
+      base,
+      metadata.slice(0, urlIndex),
+    );
+    if (shortened === raw) return line;
+    const head = line.slice(0, start) + metadata.slice(0, urlIndex);
+    return shortened === undefined ? `${head}]` : `${head}, url=${shortened}]`;
+  });
+}
+
+/** Return the shortened value, `undefined` to drop it, or `raw` to keep it. */
+function shortenSnapshotUrl(
+  raw: string,
+  base: URL,
+  precedingMetadata: string,
+): string | undefined {
+  let target: URL;
+  try {
+    target = new URL(raw);
+  } catch {
+    return raw;
+  }
+  if (target.href !== raw || target.origin !== base.origin) return raw;
+  const href = precedingMetadata.match(/, loc=href:(.+)$/)?.[1];
+  if (href !== undefined) {
+    try {
+      if (new URL(href, base).href === raw) return undefined;
+    } catch {
+      // Fall through to the relative form.
+    }
+  }
+  // Slice the serialized URL so an empty query or fragment (`/a?`, `/a#`)
+  // survives; URL.search and URL.hash report those as "".
+  const relative = raw.slice(target.origin.length);
+  return relative.startsWith("/") && !relative.startsWith("//")
+    ? relative
+    : raw;
 }
 
 function omitUnusableLocatorStatus(text: string): string {

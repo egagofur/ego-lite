@@ -1,0 +1,723 @@
+{
+  "tokenizer": "o200k_base via js-tiktoken (measured; proxy for Claude tokens)",
+  "runs": 3,
+  "totalMs": 25791.354500000016,
+  "cpuUserMs": 2025.238,
+  "cpuSystemMs": 589.611,
+  "rssStartMB": 144.046875,
+  "rssEndMB": 169.5,
+  "heapEndMB": 64.35072326660156,
+  "rows": [
+    {
+      "phase": "setup",
+      "ms": 0,
+      "cdpCalls": 1,
+      "outBytes": 72,
+      "inBytes": 15335,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "task:goto",
+      "ms": 643.7569580000127,
+      "cdpCalls": 17,
+      "outBytes": 2016,
+      "inBytes": 109260,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "task:observe1",
+      "ms": 15.391125000023749,
+      "cdpCalls": 19,
+      "outBytes": 11429,
+      "inBytes": 34408,
+      "nativeSnapshots": 1,
+      "outputChars": 571,
+      "outputTokens": 177,
+      "errors": 0
+    },
+    {
+      "phase": "task:act",
+      "ms": 232.21904199998244,
+      "cdpCalls": 57,
+      "outBytes": 113968,
+      "inBytes": 87472,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "task:observe2",
+      "ms": 63.631208999984665,
+      "cdpCalls": 17,
+      "outBytes": 8234,
+      "inBytes": 35517,
+      "nativeSnapshots": 1,
+      "outputChars": 437,
+      "outputTokens": 137,
+      "errors": 0
+    },
+    {
+      "phase": "app:goto",
+      "ms": 264.6214580000087,
+      "cdpCalls": 12,
+      "outBytes": 1459,
+      "inBytes": 24027,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "app:viewport",
+      "ms": 21.932665999993333,
+      "cdpCalls": 46,
+      "outBytes": 94383,
+      "inBytes": 46340,
+      "nativeSnapshots": 1,
+      "outputChars": 8097,
+      "outputTokens": 2263,
+      "errors": 0
+    },
+    {
+      "phase": "app:full",
+      "ms": 21.548125000001164,
+      "cdpCalls": 54,
+      "outBytes": 117210,
+      "inBytes": 50794,
+      "nativeSnapshots": 1,
+      "outputChars": 8829,
+      "outputTokens": 2471,
+      "errors": 0
+    },
+    {
+      "phase": "app:dynamic",
+      "ms": 156.26333299999533,
+      "cdpCalls": 79,
+      "outBytes": 174391,
+      "inBytes": 336510,
+      "nativeSnapshots": 1,
+      "outputChars": 10233,
+      "outputTokens": 2859,
+      "errors": 0
+    },
+    {
+      "phase": "app:repeat",
+      "ms": 20.10250000000815,
+      "cdpCalls": 59,
+      "outBytes": 132256,
+      "inBytes": 53081,
+      "nativeSnapshots": 1,
+      "outputChars": 10233,
+      "outputTokens": 2859,
+      "errors": 0
+    },
+    {
+      "phase": "app:screenshot",
+      "ms": 77.19962500000838,
+      "cdpCalls": 3,
+      "outBytes": 600,
+      "inBytes": 236812,
+      "nativeSnapshots": 0,
+      "outputChars": 76,
+      "outputTokens": 36,
+      "errors": 0
+    },
+    {
+      "phase": "flow:goto",
+      "ms": 233.78087499999674,
+      "cdpCalls": 12,
+      "outBytes": 1459,
+      "inBytes": 24082,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "flow:full",
+      "ms": 23.691875000004075,
+      "cdpCalls": 54,
+      "outBytes": 117201,
+      "inBytes": 50808,
+      "nativeSnapshots": 1,
+      "outputChars": 8955,
+      "outputTokens": 2480,
+      "errors": 0
+    },
+    {
+      "phase": "flow:dynamic",
+      "ms": 155.8778750000056,
+      "cdpCalls": 79,
+      "outBytes": 174369,
+      "inBytes": 337266,
+      "nativeSnapshots": 1,
+      "outputChars": 1870,
+      "outputTokens": 566,
+      "errors": 0
+    },
+    {
+      "phase": "check:dynamic",
+      "ms": 21.502040999999736,
+      "cdpCalls": 59,
+      "outBytes": 132248,
+      "inBytes": 53101,
+      "nativeSnapshots": 1,
+      "outputChars": 10327,
+      "outputTokens": 2859,
+      "errors": 0
+    },
+    {
+      "phase": "flow:repeat",
+      "ms": 21.759583999984898,
+      "cdpCalls": 59,
+      "outBytes": 132258,
+      "inBytes": 53109,
+      "nativeSnapshots": 1,
+      "outputChars": 206,
+      "outputTokens": 75,
+      "errors": 0
+    },
+    {
+      "phase": "flow:fill",
+      "ms": 214.34912500000792,
+      "cdpCalls": 84,
+      "outBytes": 175324,
+      "inBytes": 69854,
+      "nativeSnapshots": 1,
+      "outputChars": 1038,
+      "outputTokens": 307,
+      "errors": 0
+    },
+    {
+      "phase": "check:fill",
+      "ms": 23.759124999996857,
+      "cdpCalls": 59,
+      "outBytes": 132258,
+      "inBytes": 53109,
+      "nativeSnapshots": 1,
+      "outputChars": 10427,
+      "outputTokens": 2876,
+      "errors": 0
+    },
+    {
+      "phase": "wikipedia:goto",
+      "ms": 669.8477499999863,
+      "cdpCalls": 13,
+      "outBytes": 1621,
+      "inBytes": 234630,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "wikipedia:viewport",
+      "ms": 284.6105829999724,
+      "cdpCalls": 65,
+      "outBytes": 160543,
+      "inBytes": 59571,
+      "nativeSnapshots": 1,
+      "outputChars": 13290,
+      "outputTokens": 3023,
+      "errors": 0
+    },
+    {
+      "phase": "wikipedia:full",
+      "ms": 2666.636375000002,
+      "cdpCalls": 548,
+      "outBytes": 1645634,
+      "inBytes": 336447,
+      "nativeSnapshots": 1,
+      "outputChars": 230864,
+      "outputTokens": 42000,
+      "errors": 0
+    },
+    {
+      "phase": "wikipedia:vdiff1",
+      "ms": 274.2335000000021,
+      "cdpCalls": 67,
+      "outBytes": 160819,
+      "inBytes": 74043,
+      "nativeSnapshots": 1,
+      "outputChars": 13322,
+      "outputTokens": 3032,
+      "errors": 0
+    },
+    {
+      "phase": "wikipedia:vrepeat",
+      "ms": 262.64199999999255,
+      "cdpCalls": 62,
+      "outBytes": 107678,
+      "inBytes": 56829,
+      "nativeSnapshots": 1,
+      "outputChars": 220,
+      "outputTokens": 70,
+      "errors": 0
+    },
+    {
+      "phase": "wikipedia:vscroll",
+      "ms": 774.4041249999864,
+      "cdpCalls": 72,
+      "outBytes": 107889,
+      "inBytes": 62045,
+      "nativeSnapshots": 1,
+      "outputChars": 13385,
+      "outputTokens": 2988,
+      "errors": 0
+    },
+    {
+      "phase": "wikipedia:vcheck",
+      "ms": 263.4010409999755,
+      "cdpCalls": 63,
+      "outBytes": 106346,
+      "inBytes": 55660,
+      "nativeSnapshots": 1,
+      "outputChars": 13324,
+      "outputTokens": 2972,
+      "errors": 0
+    },
+    {
+      "phase": "python-docs:goto",
+      "ms": 617.9832089999982,
+      "cdpCalls": 12,
+      "outBytes": 1485,
+      "inBytes": 83182,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "python-docs:viewport",
+      "ms": 50.67812500000582,
+      "cdpCalls": 19,
+      "outBytes": 44718,
+      "inBytes": 34627,
+      "nativeSnapshots": 1,
+      "outputChars": 9606,
+      "outputTokens": 2323,
+      "errors": 0
+    },
+    {
+      "phase": "python-docs:full",
+      "ms": 67.17433300000266,
+      "cdpCalls": 34,
+      "outBytes": 101512,
+      "inBytes": 42438,
+      "nativeSnapshots": 1,
+      "outputChars": 88191,
+      "outputTokens": 17556,
+      "errors": 0
+    },
+    {
+      "phase": "python-docs:vdiff1",
+      "ms": 45.07208300000639,
+      "cdpCalls": 19,
+      "outBytes": 44723,
+      "inBytes": 34633,
+      "nativeSnapshots": 1,
+      "outputChars": 9638,
+      "outputTokens": 2332,
+      "errors": 0
+    },
+    {
+      "phase": "python-docs:vrepeat",
+      "ms": 46.4429999999993,
+      "cdpCalls": 19,
+      "outBytes": 44723,
+      "inBytes": 34633,
+      "nativeSnapshots": 1,
+      "outputChars": 260,
+      "outputTokens": 83,
+      "errors": 0
+    },
+    {
+      "phase": "python-docs:vscroll",
+      "ms": 520.3905830000003,
+      "cdpCalls": 21,
+      "outBytes": 33298,
+      "inBytes": 32440,
+      "nativeSnapshots": 1,
+      "outputChars": 9264,
+      "outputTokens": 2180,
+      "errors": 0
+    },
+    {
+      "phase": "python-docs:vcheck",
+      "ms": 41.22266599998693,
+      "cdpCalls": 12,
+      "outBytes": 31755,
+      "inBytes": 31857,
+      "nativeSnapshots": 1,
+      "outputChars": 9202,
+      "outputTokens": 2164,
+      "errors": 0
+    },
+    {
+      "phase": "github:goto",
+      "ms": 1992.4257090000028,
+      "cdpCalls": 19,
+      "outBytes": 2497,
+      "inBytes": 771249,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "github:viewport",
+      "ms": 225.5067080000008,
+      "cdpCalls": 45,
+      "outBytes": 164159,
+      "inBytes": 73599,
+      "nativeSnapshots": 1,
+      "outputChars": 16923,
+      "outputTokens": 3939,
+      "errors": 0
+    },
+    {
+      "phase": "github:full",
+      "ms": 2017.1788749999978,
+      "cdpCalls": 504,
+      "outBytes": 1578936,
+      "inBytes": 834879,
+      "nativeSnapshots": 1,
+      "outputChars": 177733,
+      "outputTokens": 41101,
+      "errors": 0
+    },
+    {
+      "phase": "github:vdiff1",
+      "ms": 220.57291600000462,
+      "cdpCalls": 43,
+      "outBytes": 98929,
+      "inBytes": 89415,
+      "nativeSnapshots": 1,
+      "outputChars": 17887,
+      "outputTokens": 4157,
+      "errors": 0
+    },
+    {
+      "phase": "github:vrepeat",
+      "ms": 195.75645800000348,
+      "cdpCalls": 42,
+      "outBytes": 98830,
+      "inBytes": 85223,
+      "nativeSnapshots": 1,
+      "outputChars": 234,
+      "outputTokens": 81,
+      "errors": 0
+    },
+    {
+      "phase": "github:vscroll",
+      "ms": 706.3672499999811,
+      "cdpCalls": 53,
+      "outBytes": 89634,
+      "inBytes": 58365,
+      "nativeSnapshots": 1,
+      "outputChars": 15564,
+      "outputTokens": 4032,
+      "errors": 0
+    },
+    {
+      "phase": "github:vcheck",
+      "ms": 186.16037500000675,
+      "cdpCalls": 44,
+      "outBytes": 88091,
+      "inBytes": 57782,
+      "nativeSnapshots": 1,
+      "outputChars": 15502,
+      "outputTokens": 4016,
+      "errors": 0
+    },
+    {
+      "phase": "mdn:goto",
+      "ms": 3350.9823340000003,
+      "cdpCalls": 169,
+      "outBytes": 20558,
+      "inBytes": 1240789,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "mdn:viewport",
+      "ms": 634.7679999999818,
+      "cdpCalls": 141,
+      "outBytes": 601187,
+      "inBytes": 8281609,
+      "nativeSnapshots": 1,
+      "outputChars": 9388,
+      "outputTokens": 2289,
+      "errors": 0
+    },
+    {
+      "phase": "mdn:full",
+      "ms": 2830.7595419999852,
+      "cdpCalls": 543,
+      "outBytes": 10565693,
+      "inBytes": 8486944,
+      "nativeSnapshots": 1,
+      "outputChars": 267508,
+      "outputTokens": 66585,
+      "errors": 0
+    },
+    {
+      "phase": "mdn:vdiff1",
+      "ms": 524.0501250000088,
+      "cdpCalls": 141,
+      "outBytes": 601217,
+      "inBytes": 8281640,
+      "nativeSnapshots": 1,
+      "outputChars": 9421,
+      "outputTokens": 2298,
+      "errors": 0
+    },
+    {
+      "phase": "mdn:vrepeat",
+      "ms": 510.496833000012,
+      "cdpCalls": 141,
+      "outBytes": 601217,
+      "inBytes": 8281640,
+      "nativeSnapshots": 1,
+      "outputChars": 271,
+      "outputTokens": 84,
+      "errors": 0
+    },
+    {
+      "phase": "mdn:vscroll",
+      "ms": 1063.8513749999984,
+      "cdpCalls": 159,
+      "outBytes": 670705,
+      "inBytes": 8285282,
+      "nativeSnapshots": 1,
+      "outputChars": 5393,
+      "outputTokens": 1511,
+      "errors": 0
+    },
+    {
+      "phase": "mdn:vcheck",
+      "ms": 502.1537090000056,
+      "cdpCalls": 150,
+      "outBytes": 669162,
+      "inBytes": 8284699,
+      "nativeSnapshots": 1,
+      "outputChars": 10689,
+      "outputTokens": 2714,
+      "errors": 0
+    },
+    {
+      "phase": "httpbin-form:goto",
+      "ms": 937.3585829999938,
+      "cdpCalls": 12,
+      "outBytes": 1472,
+      "inBytes": 62171,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "httpbin-form:viewport",
+      "ms": 76.83745900000213,
+      "cdpCalls": 22,
+      "outBytes": 12905,
+      "inBytes": 78562,
+      "nativeSnapshots": 1,
+      "outputChars": 1399,
+      "outputTokens": 389,
+      "errors": 0
+    },
+    {
+      "phase": "httpbin-form:full",
+      "ms": 66.17545800001244,
+      "cdpCalls": 21,
+      "outBytes": 12645,
+      "inBytes": 78411,
+      "nativeSnapshots": 1,
+      "outputChars": 1399,
+      "outputTokens": 389,
+      "errors": 0
+    },
+    {
+      "phase": "httpbin-form:vdiff1",
+      "ms": 63.09587499999907,
+      "cdpCalls": 22,
+      "outBytes": 12911,
+      "inBytes": 78569,
+      "nativeSnapshots": 1,
+      "outputChars": 1432,
+      "outputTokens": 398,
+      "errors": 0
+    },
+    {
+      "phase": "httpbin-form:vrepeat",
+      "ms": 63.69649999999092,
+      "cdpCalls": 22,
+      "outBytes": 12911,
+      "inBytes": 78569,
+      "nativeSnapshots": 1,
+      "outputChars": 209,
+      "outputTokens": 70,
+      "errors": 0
+    },
+    {
+      "phase": "httpbin-form:vscroll",
+      "ms": 534.7113750000135,
+      "cdpCalls": 31,
+      "outBytes": 14454,
+      "inBytes": 79222,
+      "nativeSnapshots": 1,
+      "outputChars": 209,
+      "outputTokens": 70,
+      "errors": 0
+    },
+    {
+      "phase": "httpbin-form:vcheck",
+      "ms": 61.56529200001387,
+      "cdpCalls": 22,
+      "outBytes": 12911,
+      "inBytes": 78639,
+      "nativeSnapshots": 1,
+      "outputChars": 1399,
+      "outputTokens": 389,
+      "errors": 0
+    }
+  ],
+  "diffChecks": [
+    {
+      "run": 0,
+      "name": "app",
+      "check": "check:dynamic",
+      "exact": true
+    },
+    {
+      "run": 0,
+      "name": "app",
+      "check": "check:fill",
+      "exact": true
+    },
+    {
+      "run": 0,
+      "name": "wikipedia",
+      "check": "wikipedia:vcheck",
+      "exact": true
+    },
+    {
+      "run": 0,
+      "name": "python-docs",
+      "check": "python-docs:vcheck",
+      "exact": true
+    },
+    {
+      "run": 0,
+      "name": "github",
+      "check": "github:vcheck",
+      "exact": true
+    },
+    {
+      "run": 0,
+      "name": "mdn",
+      "check": "mdn:vcheck",
+      "exact": true
+    },
+    {
+      "run": 0,
+      "name": "httpbin-form",
+      "check": "httpbin-form:vcheck",
+      "exact": true
+    },
+    {
+      "run": 1,
+      "name": "app",
+      "check": "check:dynamic",
+      "exact": true
+    },
+    {
+      "run": 1,
+      "name": "app",
+      "check": "check:fill",
+      "exact": true
+    },
+    {
+      "run": 1,
+      "name": "wikipedia",
+      "check": "wikipedia:vcheck",
+      "exact": true
+    },
+    {
+      "run": 1,
+      "name": "python-docs",
+      "check": "python-docs:vcheck",
+      "exact": true
+    },
+    {
+      "run": 1,
+      "name": "github",
+      "check": "github:vcheck",
+      "exact": true
+    },
+    {
+      "run": 1,
+      "name": "mdn",
+      "check": "mdn:vcheck",
+      "exact": true
+    },
+    {
+      "run": 1,
+      "name": "httpbin-form",
+      "check": "httpbin-form:vcheck",
+      "exact": true
+    },
+    {
+      "run": 2,
+      "name": "app",
+      "check": "check:dynamic",
+      "exact": true
+    },
+    {
+      "run": 2,
+      "name": "app",
+      "check": "check:fill",
+      "exact": true
+    },
+    {
+      "run": 2,
+      "name": "wikipedia",
+      "check": "wikipedia:vcheck",
+      "exact": true
+    },
+    {
+      "run": 2,
+      "name": "python-docs",
+      "check": "python-docs:vcheck",
+      "exact": true
+    },
+    {
+      "run": 2,
+      "name": "github",
+      "check": "github:vcheck",
+      "exact": true
+    },
+    {
+      "run": 2,
+      "name": "mdn",
+      "check": "mdn:vcheck",
+      "exact": true
+    },
+    {
+      "run": 2,
+      "name": "httpbin-form",
+      "check": "httpbin-form:vcheck",
+      "exact": true
+    }
+  ]
+}

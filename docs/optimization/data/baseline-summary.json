@@ -1,0 +1,414 @@
+{
+  "tokenizer": "o200k_base via js-tiktoken (measured; proxy for Claude tokens)",
+  "runs": 3,
+  "totalMs": 43393.58737500006,
+  "cpuUserMs": 879.868,
+  "cpuSystemMs": 438.126,
+  "rssStartMB": 138.296875,
+  "rssEndMB": 145.609375,
+  "heapEndMB": 54.44255447387695,
+  "rows": [
+    {
+      "phase": "setup",
+      "ms": 0,
+      "cdpCalls": 1,
+      "outBytes": 72,
+      "inBytes": 5607,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "task:goto",
+      "ms": 898.7149169999757,
+      "cdpCalls": 11,
+      "outBytes": 1294,
+      "inBytes": 17286,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "task:observe1",
+      "ms": 31.183000000019092,
+      "cdpCalls": 18,
+      "outBytes": 8134,
+      "inBytes": 21234,
+      "nativeSnapshots": 1,
+      "outputChars": 627,
+      "outputTokens": 189,
+      "errors": 0
+    },
+    {
+      "phase": "task:act",
+      "ms": 348.75874999992084,
+      "cdpCalls": 55,
+      "outBytes": 113712,
+      "inBytes": 59477,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "task:observe2",
+      "ms": 24.62550000002375,
+      "cdpCalls": 19,
+      "outBytes": 8371,
+      "inBytes": 23803,
+      "nativeSnapshots": 1,
+      "outputChars": 487,
+      "outputTokens": 148,
+      "errors": 0
+    },
+    {
+      "phase": "app:goto",
+      "ms": 253.48508400004357,
+      "cdpCalls": 12,
+      "outBytes": 1459,
+      "inBytes": 23828,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "app:viewport",
+      "ms": 35.25162500003353,
+      "cdpCalls": 48,
+      "outBytes": 94532,
+      "inBytes": 36497,
+      "nativeSnapshots": 1,
+      "outputChars": 12138,
+      "outputTokens": 3280,
+      "errors": 0
+    },
+    {
+      "phase": "app:full",
+      "ms": 26.776834000018425,
+      "cdpCalls": 56,
+      "outBytes": 117359,
+      "inBytes": 40951,
+      "nativeSnapshots": 1,
+      "outputChars": 13118,
+      "outputTokens": 3571,
+      "errors": 0
+    },
+    {
+      "phase": "app:dynamic",
+      "ms": 155.55595800001174,
+      "cdpCalls": 81,
+      "outBytes": 174540,
+      "inBytes": 318577,
+      "nativeSnapshots": 1,
+      "outputChars": 15242,
+      "outputTokens": 4139,
+      "errors": 0
+    },
+    {
+      "phase": "app:repeat",
+      "ms": 37.210000000020955,
+      "cdpCalls": 61,
+      "outBytes": 132405,
+      "inBytes": 43238,
+      "nativeSnapshots": 1,
+      "outputChars": 15242,
+      "outputTokens": 4139,
+      "errors": 0
+    },
+    {
+      "phase": "app:screenshot",
+      "ms": 94.16074999998091,
+      "cdpCalls": 4,
+      "outBytes": 767,
+      "inBytes": 236997,
+      "nativeSnapshots": 0,
+      "outputChars": 76,
+      "outputTokens": 36,
+      "errors": 0
+    },
+    {
+      "phase": "wikipedia:goto",
+      "ms": 720.6276669999934,
+      "cdpCalls": 14,
+      "outBytes": 1773,
+      "inBytes": 189772,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "wikipedia:viewport",
+      "ms": 345.28295800002525,
+      "cdpCalls": 67,
+      "outBytes": 160741,
+      "inBytes": 49808,
+      "nativeSnapshots": 1,
+      "outputChars": 17012,
+      "outputTokens": 3709,
+      "errors": 1
+    },
+    {
+      "phase": "wikipedia:full",
+      "ms": 3643.3860829999903,
+      "cdpCalls": 550,
+      "outBytes": 1645399,
+      "inBytes": 326757,
+      "nativeSnapshots": 1,
+      "outputChars": 305635,
+      "outputTokens": 52342,
+      "errors": 2
+    },
+    {
+      "phase": "python-docs:goto",
+      "ms": 1083.5599159999983,
+      "cdpCalls": 13,
+      "outBytes": 1636,
+      "inBytes": 86413,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 0
+    },
+    {
+      "phase": "python-docs:viewport",
+      "ms": 64.86645800003316,
+      "cdpCalls": 21,
+      "outBytes": 44862,
+      "inBytes": 24865,
+      "nativeSnapshots": 1,
+      "outputChars": 11047,
+      "outputTokens": 2560,
+      "errors": 0
+    },
+    {
+      "phase": "python-docs:full",
+      "ms": 72.51433300005738,
+      "cdpCalls": 36,
+      "outBytes": 101642,
+      "inBytes": 32676,
+      "nativeSnapshots": 1,
+      "outputChars": 96010,
+      "outputTokens": 18789,
+      "errors": 0
+    },
+    {
+      "phase": "github:goto",
+      "ms": 2255.055874999962,
+      "cdpCalls": 20,
+      "outBytes": 2650,
+      "inBytes": 717549,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 1
+    },
+    {
+      "phase": "github:viewport",
+      "ms": 387.17216700001154,
+      "cdpCalls": 47,
+      "outBytes": 164034,
+      "inBytes": 125218,
+      "nativeSnapshots": 1,
+      "outputChars": 20553,
+      "outputTokens": 4712,
+      "errors": 1
+    },
+    {
+      "phase": "github:full",
+      "ms": 2554.8217089999234,
+      "cdpCalls": 507,
+      "outBytes": 1584900,
+      "inBytes": 520153,
+      "nativeSnapshots": 1,
+      "outputChars": 217566,
+      "outputTokens": 47434,
+      "errors": 1
+    },
+    {
+      "phase": "mdn:goto",
+      "ms": 3461.713791999966,
+      "cdpCalls": 168,
+      "outBytes": 20405,
+      "inBytes": 1243961,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 1
+    },
+    {
+      "phase": "mdn:viewport",
+      "ms": 1044.312624999904,
+      "cdpCalls": 143,
+      "outBytes": 601338,
+      "inBytes": 8295239,
+      "nativeSnapshots": 1,
+      "outputChars": 12453,
+      "outputTokens": 2809,
+      "errors": 1
+    },
+    {
+      "phase": "mdn:full",
+      "ms": 5406.318333000061,
+      "cdpCalls": 545,
+      "outBytes": 10565844,
+      "inBytes": 8501175,
+      "nativeSnapshots": 1,
+      "outputChars": 343240,
+      "outputTokens": 78290,
+      "errors": 1
+    },
+    {
+      "phase": "httpbin-form:goto",
+      "ms": 1937.890958999982,
+      "cdpCalls": 13,
+      "outBytes": 1625,
+      "inBytes": 64815,
+      "nativeSnapshots": 0,
+      "outputChars": 0,
+      "outputTokens": 0,
+      "errors": 1
+    },
+    {
+      "phase": "httpbin-form:viewport",
+      "ms": 178.18687500001397,
+      "cdpCalls": 24,
+      "outBytes": 13056,
+      "inBytes": 68710,
+      "nativeSnapshots": 1,
+      "outputChars": 1405,
+      "outputTokens": 389,
+      "errors": 1
+    },
+    {
+      "phase": "httpbin-form:full",
+      "ms": 106.06066700001247,
+      "cdpCalls": 23,
+      "outBytes": 12796,
+      "inBytes": 68566,
+      "nativeSnapshots": 1,
+      "outputChars": 1405,
+      "outputTokens": 389,
+      "errors": 1
+    }
+  ],
+  "perRun": [
+    {
+      "totalMs": 22285.80929200002,
+      "cpuUserMs": 918.392,
+      "cpuSystemMs": 438.126,
+      "memStart": {
+        "rss": 70877184,
+        "heapUsed": 6576100
+      },
+      "memEnd": {
+        "rss": 152682496,
+        "heapUsed": 57087156
+      },
+      "errors": []
+    },
+    {
+      "totalMs": 43393.58737500006,
+      "cpuUserMs": 879.868,
+      "cpuSystemMs": 519.315,
+      "memStart": {
+        "rss": 148504576,
+        "heapUsed": 6565284
+      },
+      "memEnd": {
+        "rss": 161824768,
+        "heapUsed": 99740380
+      },
+      "errors": [
+        "wikipedia:full"
+      ]
+    },
+    {
+      "totalMs": 225526.08299999998,
+      "cpuUserMs": 258.504,
+      "cpuSystemMs": 329.001,
+      "memStart": {
+        "rss": 145014784,
+        "heapUsed": 6565592
+      },
+      "memEnd": {
+        "rss": 35913728,
+        "heapUsed": 9505556
+      },
+      "errors": [
+        "wikipedia:viewport",
+        "wikipedia:full",
+        "github:goto",
+        "github:viewport",
+        "github:full",
+        "mdn:goto",
+        "mdn:viewport",
+        "mdn:full",
+        "httpbin-form:goto",
+        "httpbin-form:viewport",
+        "httpbin-form:full"
+      ]
+    }
+  ],
+  "methodsPerSnapshot": {
+    "task:observe1": {
+      "Target.activateTarget": 1,
+      "Target.getTargets": 3,
+      "Page.getFrameTree": 5,
+      "Runtime.evaluate": 3,
+      "Runtime.getProperties": 1,
+      "DOM.describeNode": 4,
+      "Runtime.releaseObjectGroup": 1
+    },
+    "app:viewport": {
+      "Target.activateTarget": 1,
+      "Target.getTargets": 3,
+      "Page.getFrameTree": 7,
+      "Runtime.evaluate": 4,
+      "Runtime.getProperties": 1,
+      "DOM.describeNode": 31,
+      "Runtime.releaseObjectGroup": 1
+    },
+    "app:full": {
+      "Target.activateTarget": 1,
+      "Target.getTargets": 3,
+      "Page.getFrameTree": 7,
+      "Runtime.evaluate": 3,
+      "Runtime.getProperties": 1,
+      "DOM.describeNode": 40,
+      "Runtime.releaseObjectGroup": 1
+    },
+    "app:repeat": {
+      "Target.activateTarget": 1,
+      "Target.getTargets": 3,
+      "Page.getFrameTree": 7,
+      "Runtime.evaluate": 3,
+      "Runtime.getProperties": 1,
+      "DOM.describeNode": 45,
+      "Runtime.releaseObjectGroup": 1
+    },
+    "wikipedia:full": {
+      "Target.activateTarget": 1,
+      "Target.getTargets": 3,
+      "Page.getFrameTree": 6,
+      "Runtime.evaluate": 3,
+      "Runtime.getProperties": 1,
+      "DOM.describeNode": 534,
+      "Runtime.releaseObjectGroup": 1,
+      "Target.attachToTarget": 1
+    },
+    "mdn:full": {
+      "Target.activateTarget": 1,
+      "Target.getTargets": 3,
+      "Page.getFrameTree": 59,
+      "Accessibility.getFullAXTree": 28,
+      "Runtime.evaluate": 51,
+      "Runtime.getProperties": 23,
+      "DOM.describeNode": 357,
+      "Runtime.releaseObjectGroup": 23
+    }
+  }
+}

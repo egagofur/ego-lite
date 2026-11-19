@@ -99,6 +99,7 @@ import {
   runtimeInstanceId,
   type ManagedPage,
   type PageLedger,
+  type SnapshotBase,
   type PageOrigin,
 } from "./page-ledger.js";
 import {
@@ -106,7 +107,10 @@ import {
   pageRefDocumentId,
   type PageRefState,
 } from "./page-ref-registry.js";
+import { diffSnapshotBodies, type SnapshotDiff } from "./snapshot-diff.js";
 import {
+  compactSnapshotUrls,
+  filterInteractiveSnapshot,
   preparePageSnapshotResult,
   rewriteSnapshotRefIds,
 } from "./snapshot-result.js";
@@ -336,6 +340,10 @@ type PageReloadOptions = Pick<PageGotoOptions, "timeout" | "waitUntil">;
 
 type PageSnapshotOptions = Omit<SnapshotOptions, "root"> & {
   root?: string;
+  /** Keep only actionable nodes plus headings, dialogs, and frames. */
+  interactive?: boolean;
+  /** true, or the id of an earlier snapshot to print only changes since. */
+  diff?: true | string;
 };
 
 type PageScreenshotOptions = Omit<CaptureScreenshotOptions, "full"> & {
@@ -465,6 +473,15 @@ type LedgerPort = {
     refs: PageRefState,
   ): Promise<void>;
   closePage(spaceId: number, label: string): Promise<ManagedPage>;
+  readSnapshotBase?(
+    spaceId: number,
+    label: string,
+  ): Promise<SnapshotBase | undefined>;
+  writeSnapshotBase?(
+    spaceId: number,
+    label: string,
+    base: Omit<SnapshotBase, "id">,
+  ): Promise<string | undefined>;
   releasePage(spaceId: number, label: string): Promise<ManagedPage>;
   keepUnmanaged(
     spaceId: number,
@@ -1929,6 +1946,9 @@ class Page {
   ): Promise<PageActionReceipt> {
     assertUrl(url);
     validatePublicApiOptions("Page.goto", options);
+    // Snapshots print same-origin links as root-relative `url=/path` values;
+    // accept them directly by resolving against the current document.
+    if (isRootRelativeUrl(url)) url = new URL(url, await this.url()).href;
     const timeoutMs = options.timeout ?? 15_000;
     const waitUntil = options.waitUntil ?? "load";
     const page = await this.#resolve();
@@ -2020,9 +2040,18 @@ class Page {
             : {}),
         };
       }
-      const { root: _root, ...snapshotOptions } = options;
+      const {
+        root: _root,
+        interactive: _interactive,
+        diff: _diff,
+        ...snapshotOptions
+      } = options;
       const snapshotScope = options.scope ?? "only_within_viewport";
+      // Frame sessions read right after a capture also serve that capture's
+      // document check, saving a Target.getTargets/Page.getFrameTree pair.
+      let capturedFrameSessions: Map<string, string> | undefined;
       const capture = async () => {
+        capturedFrameSessions = undefined;
         const result = await this.#services.snapshot({
           ...snapshotOptions,
           ...(root === undefined ? {} : { root }),
@@ -2032,7 +2061,7 @@ class Page {
         });
         const iframeSessions =
           Array.isArray(result?.refs) && result.refs.length > 0
-            ? await this.#frameSessions(page)
+            ? (capturedFrameSessions = await this.#frameSessions(page))
             : new Map<string, string>();
         await preparePageSnapshotResult(
           this.#services,
@@ -2053,7 +2082,11 @@ class Page {
       for (let attempt = 0; ; attempt += 1) {
         const beforeDocuments = documents;
         result = await capture();
-        documents = await this.#pageDocuments(page, sessionId);
+        documents = await this.#pageDocuments(
+          page,
+          sessionId,
+          capturedFrameSessions,
+        );
         if (rootRefId) {
           // The subtree root is a node of the document the refs were taken
           // from. Once that document is gone, a retry would capture whatever
@@ -2095,17 +2128,78 @@ class Page {
         result,
         snapshotScope === "full_page",
       );
-      const content = result?.content || "";
-      const header = await this.#snapshotHeader(page);
+      const { header, url } = await this.#snapshotHeader(page);
+      // Same-origin URLs are printed relative to the Page URL in the header.
+      const compacted = url
+        ? compactSnapshotUrls(result?.content || "", url)
+        : result?.content || "";
+      const content = options.interactive
+        ? filterInteractiveSnapshot(compacted)
+        : compacted;
       const overflow =
         snapshotScope === "only_within_viewport"
           ? await this.#viewportOverflowHint(sessionId)
           : "";
-      if (!overflow) return `${header}\n${content}`;
       // The native content ends with a newline; keep the hint directly below
       // the last node instead of after a blank line.
-      return `${header}\n${content.replace(/\n+$/, "")}\n${overflow}`;
+      const body = overflow
+        ? `${content.replace(/\n+$/, "")}\n${overflow}`
+        : content;
+      if (options.diff === undefined) return `${header}\n${body}`;
+      return this.#diffSnapshotOutput(page, options, header, body);
     });
+  }
+
+  /**
+   * Print a snapshot for `diff`: the full snapshot or only its changes, plus
+   * the id the next call can diff against. A diff is printed only against
+   * the id the caller names, so it is always relative to text the caller was
+   * shown; any other case prints the full snapshot and says why.
+   */
+  async #diffSnapshotOutput(
+    page: PageTarget,
+    options: PageSnapshotOptions,
+    header: string,
+    body: string,
+  ): Promise<string> {
+    const ledger = this.#services.ledger;
+    const key = JSON.stringify([
+      options.scope ?? "only_within_viewport",
+      options.root ?? null,
+      Boolean(options.interactive),
+      options.includeActionMarks ?? true,
+      options.includeStableLocator ?? true,
+    ]);
+    let diff: SnapshotDiff = { kind: "full" };
+    let reason = "";
+    if (typeof options.diff === "string") {
+      const base = await ledger
+        .readSnapshotBase?.(this.spaceId, this.label)
+        .catch(() => undefined);
+      if (!base || base.id !== options.diff) {
+        reason = `${options.diff} is not the latest diff snapshot of ${this.label}`;
+      } else if (base.targetId !== page.targetId || base.key !== key) {
+        reason = `${options.diff} was taken with other options`;
+      } else {
+        diff = diffSnapshotBodies(base.body, body);
+        if (diff.kind === "full") reason = "too many changes for a diff";
+      }
+    }
+    const id = await ledger
+      .writeSnapshotBase?.(this.spaceId, this.label, {
+        targetId: page.targetId,
+        key,
+        body,
+      })
+      .catch(() => undefined);
+    const next = id ? `snapshot id ${id}` : "no snapshot id";
+    if (diff.kind === "unchanged") {
+      return `${header}\n[unchanged since ${options.diff}: all ${diff.lines} lines and refs are the same; ${next}]`;
+    }
+    if (diff.kind === "diff") {
+      return `${header}\n[changes since ${options.diff}: +${diff.added} -${diff.removed} lines in unified diff form; other lines and their refs are unchanged; ${next}]\n${diff.text}`;
+    }
+    return `${header}\n[full snapshot${reason ? `, ${reason}` : ""}; ${next}]\n${body}`;
   }
 
   /**
@@ -3605,8 +3699,10 @@ class Page {
   async #pageDocuments(
     page: PageTarget,
     sessionId: string,
+    knownFrameSessions?: Map<string, string>,
   ): Promise<Map<string, string>> {
-    const iframeSessions = await this.#frameSessions(page);
+    const iframeSessions =
+      knownFrameSessions ?? (await this.#frameSessions(page));
     const readTree = async (session: string) => {
       const response = await this.#services.cdp(
         "Page.getFrameTree",
@@ -3643,11 +3739,21 @@ class Page {
       );
     // The Page tree excludes out-of-process frames. A failed session read must
     // reach the retry boundary, not persistently expire refs in a live frame.
-    const frames = await Promise.all(
-      [...new Set(iframeSessions.values())]
-        .filter((session) => session !== sessionId)
-        .map(readTree),
-    );
+    const readFrames = (sessions: Map<string, string>) =>
+      Promise.all(
+        [...new Set(sessions.values())]
+          .filter((session) => session !== sessionId)
+          .map(readTree),
+      );
+    let frames;
+    try {
+      frames = await readFrames(iframeSessions);
+    } catch (error) {
+      if (!knownFrameSessions) throw error;
+      // A reused out-of-process frame session can detach between the capture
+      // and this check; read the frames through fresh sessions instead.
+      frames = await readFrames(await this.#frameSessions(page));
+    }
     for (const frame of frames) visit(frame);
     documents.set("", root);
     return documents;
@@ -3701,23 +3807,31 @@ class Page {
     return refs;
   }
 
-  async #snapshotHeader(page: PageTarget): Promise<string> {
+  async #snapshotHeader(
+    page: PageTarget,
+  ): Promise<{ header: string; url?: string }> {
     try {
       const [tabs, ledger] = await Promise.all([
         this.#services.listTabs(),
         this.#services.ledger.read(this.spaceId),
       ]);
-      return snapshotSourceHeader({
-        currentLabel: this.label,
-        currentTargetId: page.targetId,
-        ledger,
-        pageBudget: this.#services.pageBudget,
-        spaceId: this.spaceId,
-        spaceName: this.#spaceName,
-        tabs,
-      });
+      const url = tabs.find((tab) => tab.targetId === page.targetId)?.url;
+      return {
+        header: snapshotSourceHeader({
+          currentLabel: this.label,
+          currentTargetId: page.targetId,
+          ledger,
+          pageBudget: this.#services.pageBudget,
+          spaceId: this.spaceId,
+          spaceName: this.#spaceName,
+          tabs,
+        }),
+        ...(typeof url === "string" && url ? { url } : {}),
+      };
     } catch {
-      return `[${this.label} | space ${JSON.stringify(this.#spaceName)}(${this.spaceId})]`;
+      return {
+        header: `[${this.label} | space ${JSON.stringify(this.#spaceName)}(${this.spaceId})]`,
+      };
     }
   }
 
@@ -3791,10 +3905,14 @@ function snapshotSourceHeader(input: {
     current?.title || current?.url || "untitled",
   );
   const pages = Object.entries(input.ledger.pages).map(([label, page]) => {
+    // The current Page's title already leads the header.
+    if (page.targetId === input.currentTargetId) return `${label}*`;
     const tab = tabsByTarget.get(page.targetId);
     const title = compactPageTitle(tab?.title || tab?.url || "untitled");
-    return `${label}${page.targetId === input.currentTargetId ? "*" : ""} ${JSON.stringify(title)}`;
+    return `${label} ${JSON.stringify(title)}`;
   });
+  // The Page URL is the base for the relative `url=` values in the content.
+  const currentUrl = current?.url ? ` ${current.url}` : "";
   const untracked = input.tabs.filter(
     (tab) => !managedTargets.has(tab.targetId),
   ).length;
@@ -3804,7 +3922,7 @@ function snapshotSourceHeader(input: {
       ? ` | budget ${managed}/${input.pageBudget}`
       : "";
   const inventory = pages.length > 0 ? ` — ${pages.join(", ")}` : "";
-  return `[${input.currentLabel} ${JSON.stringify(currentTitle)} | space ${JSON.stringify(input.spaceName)}(${input.spaceId}): ${managed} managed, ${untracked} untracked${inventory}${budget}]`;
+  return `[${input.currentLabel} ${JSON.stringify(currentTitle)}${currentUrl} | space ${JSON.stringify(input.spaceName)}(${input.spaceId}): ${managed} managed, ${untracked} untracked${inventory}${budget}]`;
 }
 
 async function evaluateInSession<T>(
@@ -4375,6 +4493,11 @@ function assertUrl(url: string): void {
   if (typeof url !== "string" || url.length === 0) {
     throw new TypeError("page URL must be a non-empty string");
   }
+}
+
+/** `/path`, but not a protocol-relative `//host/path`. */
+function isRootRelativeUrl(url: string): boolean {
+  return url.startsWith("/") && !url.startsWith("//");
 }
 
 function asError(value: unknown): Error {

@@ -18,6 +18,7 @@ import {
   PageUnresponsiveError,
 } from "../dist/src/browser-runtime.js";
 import { PageLedgerStore } from "../dist/src/page-ledger.js";
+import { applySnapshotDiff } from "../dist/src/snapshot-diff.js";
 import { flushSink, resetSink } from "../dist/src/output-sink.js";
 import {
   captureTaskSpaceUserBoundary,
@@ -2987,8 +2988,8 @@ test("snapshot defaults to the viewport, reports its source, and validates optio
     );
 
     await assert.rejects(
-      () => page.snapshot({ diff: true }),
-      /page\.snapshot received unknown option: diff/,
+      () => page.snapshot({ since: true }),
+      /page\.snapshot received unknown option: since/,
     );
   });
 });
@@ -3177,6 +3178,188 @@ test("viewport snapshots preserve native iframe contents and refs", async () => 
       }
     });
   }
+});
+
+test("snapshots print the Page URL once and shorten same-origin link URLs", async () => {
+  await withFixture(async (fixture) => {
+    const content = [
+      "root",
+      "  container",
+      '    heading "Orders"',
+      "    paragraph",
+      '      text "Recent orders"',
+      '    anchor "Order 7" [ref=1, loc=href:/orders/7, url=https://example.test/orders/7]',
+      '    anchor "Help" [ref=2, url=https://example.test/help?q=1]',
+      '    anchor "Elsewhere" [ref=3, url=https://other.test/x]',
+    ].join("\n");
+    const task = taskForRound(fixture, "round-a", {
+      async snapshot(options) {
+        fixture.snapshotOptions.push(options);
+        return {
+          content,
+          refs: [
+            { refId: 1, backendNodeId: 1, role: "anchor" },
+            { refId: 2, backendNodeId: 2, role: "anchor" },
+            { refId: 3, backendNodeId: 3, role: "anchor" },
+          ],
+        };
+      },
+    });
+    const page = await openTestPage(task, "https://example.test/orders");
+
+    const [header, ...body] = (await page.snapshot()).split("\n");
+    assert.match(
+      header,
+      /^\[p1 "[^"]*" https:\/\/example\.test\/orders \| space /,
+    );
+    assert.match(
+      header,
+      / — p1\*(?:,|\]|$)/,
+      "the current Page's title is not repeated",
+    );
+    assert.deepEqual(body, [
+      "root",
+      "  container",
+      '    heading "Orders"',
+      "    paragraph",
+      '      text "Recent orders"',
+      '    anchor "Order 7" [ref=1, loc=href:/orders/7]',
+      '    anchor "Help" [ref=2, url=/help?q=1]',
+      '    anchor "Elsewhere" [ref=3, url=https://other.test/x]',
+    ]);
+
+    const interactive = await page.snapshot({ interactive: true });
+    assert.deepEqual(interactive.split("\n").slice(1), [
+      "root",
+      '  heading "Orders"',
+      '  anchor "Order 7" [ref=1, loc=href:/orders/7]',
+      '  anchor "Help" [ref=2, url=/help?q=1]',
+      '  anchor "Elsewhere" [ref=3, url=https://other.test/x]',
+    ]);
+    assert.equal(
+      "interactive" in fixture.snapshotOptions.at(-1),
+      false,
+      "the filter runs in the SDK, not in the native snapshot",
+    );
+    await assert.rejects(
+      () => page.snapshot({ interactive: "yes" }),
+      /interactive/,
+    );
+  });
+});
+
+test("a snapshot rereads frames when a reused frame session detached after capture", async () => {
+  await withFixture(async (fixture) => {
+    let frameSessionReads = 0;
+    const task = taskForRound(fixture, "round-a", {
+      async cdp(method, params, sessionId, timeoutMs) {
+        if (method === "Page.getFrameTree" && sessionId === "session:gone") {
+          throw new Error("Session with given id not found.");
+        }
+        return fixture.services.cdp(method, params, sessionId, timeoutMs);
+      },
+      async ensureFrameSessions() {
+        frameSessionReads += 1;
+        // The read made right after the capture returns a session that
+        // detaches before the document check uses it.
+        return new Map([
+          [
+            "frame-oopif",
+            frameSessionReads === 2 ? "session:gone" : "session:oopif",
+          ],
+        ]);
+      },
+      async snapshot() {
+        return {
+          content: 'root\n  button "Pay" [ref=1]',
+          refs: [{ refId: 1, backendNodeId: 1, role: "button" }],
+        };
+      },
+    });
+    const page = await openTestPage(task, "https://example.test/pay");
+    const before = frameSessionReads;
+    assert.match(await page.snapshot(), /button "Pay" \[ref=1\]/);
+    assert.equal(
+      frameSessionReads - before,
+      3,
+      "before-capture read, capture read, and one fresh read after the detach",
+    );
+  });
+});
+
+test("diff snapshots print only changes against the id the caller names", async () => {
+  await withFixture(async (fixture) => {
+    const rows = (count) =>
+      Array.from(
+        { length: count },
+        (_, index) => `    table_cell "Order ${index}" [ref=${index + 1}]`,
+      );
+    let content = ["root", "  table", ...rows(30)].join("\n");
+    const task = taskForRound(fixture, "round-a", {
+      async snapshot(options) {
+        fixture.snapshotOptions.push(options);
+        return { content, refs: [] };
+      },
+    });
+    const page = await openTestPage(task, "https://example.test/orders");
+    const body = (text) => text.split("\n").slice(2).join("\n");
+
+    const first = await page.snapshot({ diff: true });
+    assert.match(first.split("\n")[1], /^\[full snapshot; snapshot id d1\]$/);
+    assert.equal(body(first), content);
+    assert.equal("diff" in fixture.snapshotOptions.at(-1), false);
+
+    assert.equal(
+      (await page.snapshot({ diff: "d1" })).split("\n")[1],
+      "[unchanged since d1: all 32 lines and refs are the same; snapshot id d2]",
+    );
+
+    const previous = content;
+    content = ["root", "  table", ...rows(31)]
+      .join("\n")
+      .replace('"Order 4"', '"Order 4 refunded"');
+    const changed = await page.snapshot({ diff: "d2" });
+    const [, note, ...diffLines] = changed.split("\n");
+    assert.equal(
+      note,
+      "[changes since d2: +2 -1 lines in unified diff form; other lines and their refs are unchanged; snapshot id d3]",
+    );
+    assert.equal(
+      applySnapshotDiff(previous, diffLines.join("\n")),
+      content,
+      "the printed diff reproduces the full snapshot exactly",
+    );
+    assert(diffLines.join("\n").length < content.length / 2);
+
+    const stale = await page.snapshot({ diff: "d1" });
+    assert.match(
+      stale.split("\n")[1],
+      /^\[full snapshot, d1 is not the latest diff snapshot of p1; snapshot id d4\]$/,
+    );
+    assert.equal(body(stale), content);
+
+    const otherScope = await page.snapshot({ diff: "d4", scope: "full_page" });
+    assert.match(otherScope.split("\n")[1], /d4 was taken with other options/);
+
+    assert.doesNotMatch(await page.snapshot(), /snapshot id/);
+    await assert.rejects(
+      () => page.snapshot({ diff: "latest" }),
+      /snapshot id/,
+    );
+
+    await page.close();
+    const ledger = new PageLedgerStore({ rootDir: fixture.rootDir });
+    assert.equal(await ledger.readSnapshotBase(task.spaceId, "p1"), undefined);
+  });
+});
+
+test("goto resolves a root-relative URL printed by a snapshot", async () => {
+  await withFixture(async (fixture) => {
+    const task = taskForRound(fixture, "round-a");
+    const page = await openTestPage(task, "https://example.test/catalog/list");
+    await page.goto("/catalog/item?id=7");
+    assert.equal(await page.url(), "https://example.test/catalog/item?id=7");
+  });
 });
 
 test("a viewport snapshot preserves previously registered offscreen iframe refs", async () => {

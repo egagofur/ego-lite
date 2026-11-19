@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Bench App Dashboard</title>
+    <style>
+      body { font-family: sans-serif; margin: 0; }
+      header, footer, main { padding: 8px 16px; }
+      nav ul { display: flex; gap: 12px; list-style: none; padding: 0; }
+      table { border-collapse: collapse; }
+      td, th { border: 1px solid #ccc; padding: 2px 6px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div><div><a href="/app.html"><img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="" /></a></div></div>
+      <nav aria-label="Primary">
+        <ul>
+          <li><a href="/app.html#overview">Overview</a></li>
+          <li><a href="/app.html#orders">Orders</a></li>
+          <li><a href="/app.html#customers">Customers</a></li>
+          <li><a href="/app.html#reports">Reports</a></li>
+          <li><a href="/app.html#settings">Settings</a></li>
+        </ul>
+      </nav>
+      <form role="search" onsubmit="return false">
+        <input type="search" aria-label="Search orders" placeholder="Search orders" />
+        <button type="submit">Search</button>
+      </form>
+    </header>
+    <main>
+      <h1>Orders</h1>
+      <div><div><p>Showing the most recent orders for your store.</p></div></div>
+      <div><span> </span><span>&nbsp;</span></div>
+      <table>
+        <thead>
+          <tr><th>Order</th><th>Customer</th><th>Status</th><th>Total</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <button id="more" type="button">Load more orders</button>
+      <section aria-label="New customer">
+        <h2>New customer</h2>
+        <form onsubmit="return false">
+          <div><label for="name">Full name</label><input id="name" name="name" /></div>
+          <div><label for="email">Email</label><input id="email" name="email" type="email" /></div>
+          <div>
+            <label for="plan">Plan</label>
+            <select id="plan" name="plan">
+              <option>Free</option><option>Team</option><option>Enterprise</option>
+            </select>
+          </div>
+          <div><label><input type="checkbox" name="terms" /> Accept terms</label></div>
+          <button type="submit">Create customer</button>
+        </form>
+      </section>
+    </main>
+    <footer>
+      <ul>
+        <li><a href="/app.html#about">About</a></li>
+        <li><a href="/app.html#privacy">Privacy</a></li>
+        <li><a href="/app.html#terms">Terms</a></li>
+        <li><a href="https://example.com/help">Help center</a></li>
+      </ul>
+    </footer>
+    <script>
+      const statuses = ["Paid", "Pending", "Refunded", "Shipped"];
+      let next = 1001;
+      function addRows(count) {
+        const body = document.getElementById("rows");
+        for (let i = 0; i < count; i += 1) {
+          const id = next++;
+          const tr = document.createElement("tr");
+          tr.innerHTML =
+            `<td><a href="/app.html#order-${id}">#${id}</a></td>` +
+            `<td>Customer ${id % 37}</td>` +
+            `<td>${statuses[id % statuses.length]}</td>` +
+            `<td>$${(id % 97) * 3}.00</td>` +
+            `<td><button type="button">View</button> <button type="button">Refund</button></td>`;
+          body.appendChild(tr);
+        }
+      }
+      addRows(25);
+      document.getElementById("more").addEventListener("click", () => addRows(5));
+    </script>
+  </body>
+</html>

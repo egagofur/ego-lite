@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  mkdir,
   mkdtemp,
   readFile,
   readdir,
@@ -849,4 +850,68 @@ test("retained targets default to empty for ledgers from earlier runtimes", asyn
   } finally {
     await rm(rootDir, { recursive: true, force: true });
   }
+});
+
+test("snapshot diff bases are numbered per Page and removed with the Page or space", async () => {
+  await withTempLedger(async (rootDir) => {
+    const ledger = new PageLedgerStore({
+      rootDir,
+      browserInstanceId: "browser-host:1",
+    });
+    await ledger.initializeCreatedSpace(4, "target-1");
+    await ledger.addPage(4, "target-2");
+    await ledger.addPage(4, "target-3");
+    const base = { targetId: "target-1", key: "k", body: "root" };
+
+    assert.equal(await ledger.readSnapshotBase(4, "p1"), undefined);
+    assert.equal(await ledger.writeSnapshotBase(4, "p1", base), "d1");
+    assert.equal(await ledger.writeSnapshotBase(4, "p1", base), "d2");
+    assert.equal(await ledger.writeSnapshotBase(4, "p2", base), "d1");
+    assert.equal(await ledger.writeSnapshotBase(4, "p3", base), "d1");
+    assert.deepEqual(await ledger.readSnapshotBase(4, "p1"), {
+      ...base,
+      id: "d2",
+    });
+    const ledgerFiles = (await readdir(rootDir)).filter((name) =>
+      name.endsWith(".json"),
+    );
+
+    await ledger.closePage(4, "p2");
+    assert.equal(await ledger.readSnapshotBase(4, "p2"), undefined);
+    await ledger.releasePage(4, "p3");
+    assert.equal(await ledger.readSnapshotBase(4, "p3"), undefined);
+
+    await ledger.discard(4);
+    assert.equal(await ledger.readSnapshotBase(4, "p1"), undefined);
+    assert.deepEqual(await readdir(join(rootDir, "snapshot-bases")), []);
+    assert(
+      ledgerFiles.every((name) => !name.includes("snapshot")),
+      "diff bases never land among ledger versions",
+    );
+  });
+});
+
+test("a failed snapshot base write leaves no base behind", async () => {
+  await withTempLedger(async (rootDir) => {
+    const ledger = new PageLedgerStore({ rootDir });
+    await ledger.initializeCreatedSpace(5, "target-1");
+    await ledger.writeSnapshotBase(5, "p1", {
+      targetId: "target-1",
+      key: "k",
+      body: "root",
+    });
+    // A directory where the base file should be makes the write fail.
+    const path = join(rootDir, "snapshot-bases", "space-5-p1.json");
+    await rm(path);
+    await mkdir(path);
+    assert.equal(
+      await ledger.writeSnapshotBase(5, "p1", {
+        targetId: "target-1",
+        key: "k",
+        body: "root 2",
+      }),
+      undefined,
+    );
+    assert.equal(await ledger.readSnapshotBase(5, "p1"), undefined);
+  });
 });
